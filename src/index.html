@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111318" />
+    <title>Loupe View</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-width: 320px;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        background: #111318;
+        color: #f3f4f6;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      main {
+        display: grid;
+        flex: 1;
+        min-height: 0;
+        place-content: center;
+        padding: 48px;
+        text-align: center;
+      }
+
+      .mark {
+        display: grid;
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 24px;
+        place-items: center;
+        border: 1px solid #343943;
+        border-radius: 18px;
+        color: #a5b4fc;
+        font-size: 30px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+      }
+
+      p {
+        margin: 10px 0 0;
+        color: #969ba7;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <app-title-bar>
+      <span slot="branding">Loupe View</span>
+    </app-title-bar>
+    <main id="image-canvas">
+      <div class="mark" aria-hidden="true">⌕</div>
+      <h1>Loupe View</h1>
+      <p>Your image workspace is ready.</p>
+    </main>
+    <image-status-bar></image-status-bar>
+    <script type="module" src="./title-bar.js"></script>
+    <script type="module" src="./status-bar.js"></script>
+  </body>
+</html>

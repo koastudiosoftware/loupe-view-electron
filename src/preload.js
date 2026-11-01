@@ -1,0 +1,18 @@
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("windowControls", {
+  close: () => ipcRenderer.send("window:close"),
+  minimize: () => ipcRenderer.send("window:minimize"),
+  toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),
+  toggleFullscreen: () => ipcRenderer.send("window:toggle-fullscreen"),
+  onMaximizedChange: (callback) => {
+    const listener = (_event, isMaximized) => callback(isMaximized);
+    ipcRenderer.on("window:maximized", listener);
+    return () => ipcRenderer.removeListener("window:maximized", listener);
+  },
+  onFullscreenChange: (callback) => {
+    const listener = (_event, isFullScreen) => callback(isFullScreen);
+    ipcRenderer.on("window:fullscreen", listener);
+    return () => ipcRenderer.removeListener("window:fullscreen", listener);
+  },
+});
