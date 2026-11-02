@@ -311,7 +311,7 @@ template.innerHTML = `
     <div class="status-group">
       <button
         class="status-button"
-        data-action="directory-view"
+        data-action="single-image-view"
         type="button"
         aria-label="Film view"
         title="Film view"
@@ -437,12 +437,12 @@ class ImageStatusBar extends HTMLElement {
         this.updateZoom(String(Math.min(800, Number(this.zoomSlider.value) + 10)));
       } else if (action === "fullscreen") {
         window.windowControls.toggleFullscreen();
-      } else if (action === "directory-view") {
+      } else if (action === "single-image-view") {
         this.dispatchEvent(
           new CustomEvent("screen-navigate", {
             bubbles: true,
             composed: true,
-            detail: { screen: "directory-view" },
+            detail: { screen: "single-image-view" },
           }),
         );
       } else if (action === "preset") {
