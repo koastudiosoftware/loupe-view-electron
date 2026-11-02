@@ -214,7 +214,57 @@ template.innerHTML = `
         </section>
         <section class="settings-panel" data-panel="keyboard" hidden>
           <h2>Keyboard</h2>
-          <div class="placeholder">Keyboard settings will be available here.</div>
+          <section class="setting-group" aria-label="Keyboard shortcuts">
+            <div class="file-types-table-wrapper">
+              <table class="file-types-table keyboard-shortcuts-table">
+                <colgroup>
+                  <col style="width: 34%" />
+                  <col style="width: 28%" />
+                  <col style="width: 38%" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col" aria-sort="none">
+                      <button class="sort-header" type="button" data-sort-column="action">
+                        Action
+                      </button>
+                      <span
+                        class="column-resizer"
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-label="Resize Action column"
+                        tabindex="0"
+                      ></span>
+                    </th>
+                    <th scope="col" aria-sort="none">
+                      <button class="sort-header" type="button" data-sort-column="keys">
+                        Key(s)
+                      </button>
+                      <span
+                        class="column-resizer"
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-label="Resize Key(s) column"
+                        tabindex="0"
+                      ></span>
+                    </th>
+                    <th scope="col" aria-sort="none">
+                      <button class="sort-header" type="button" data-sort-column="tooltip">
+                        Tooltip
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Open image</td>
+                    <td>Ctrl+O</td>
+                    <td>Open an image file</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
         </section>
       </div>
     </div>
@@ -235,6 +285,35 @@ class SettingsScreen extends HTMLElement {
     this.defaultDirectoryFields = this.shadowRoot.querySelector(
       "#default-directory-fields",
     );
+    this.keyboardShortcutsTable = this.shadowRoot.querySelector(
+      ".keyboard-shortcuts-table",
+    );
+    this.keyboardTableColumns = [
+      ...this.keyboardShortcutsTable.querySelectorAll("col"),
+    ];
+
+    this.keyboardShortcutsTable
+      .querySelectorAll(".sort-header")
+      .forEach((button) => {
+        button.addEventListener("click", () => {
+          this.dispatchEvent(
+            new CustomEvent("settings-sort-request", {
+              bubbles: true,
+              composed: true,
+              detail: {
+                table: "keyboard-shortcuts",
+                column: button.dataset.sortColumn,
+              },
+            }),
+          );
+        });
+      });
+
+    this.keyboardShortcutsTable
+      .querySelectorAll(".column-resizer")
+      .forEach((resizer, index) => {
+        this.configureColumnResizer(resizer, index);
+      });
 
     this.categoryButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -269,6 +348,95 @@ class SettingsScreen extends HTMLElement {
     });
     this.settingsPanels.forEach((panel) => {
       panel.hidden = panel.dataset.panel !== category;
+    });
+  }
+
+  configureColumnResizer(resizer, columnIndex) {
+    const column = this.keyboardTableColumns[columnIndex];
+    const adjacentColumn = this.keyboardTableColumns[columnIndex + 1];
+    const minimumWidth = 80;
+    let widthsInitialized = false;
+
+    const initializeWidths = () => {
+      if (widthsInitialized) {
+        return true;
+      }
+
+      const widths = this.keyboardTableColumns.map(
+        (tableColumn) => tableColumn.getBoundingClientRect().width,
+      );
+      if (widths.some((width) => width === 0)) {
+        return false;
+      }
+
+      this.keyboardTableColumns.forEach((tableColumn, index) => {
+        tableColumn.style.width = `${widths[index]}px`;
+      });
+      widthsInitialized = true;
+      return true;
+    };
+
+    const resizeBy = (delta) => {
+      if (!initializeWidths()) {
+        return;
+      }
+
+      const currentWidth = column.getBoundingClientRect().width;
+      const adjacentWidth = adjacentColumn.getBoundingClientRect().width;
+      const adjustedDelta = Math.max(
+        minimumWidth - currentWidth,
+        Math.min(delta, adjacentWidth - minimumWidth),
+      );
+      column.style.width = `${currentWidth + adjustedDelta}px`;
+      adjacentColumn.style.width = `${adjacentWidth - adjustedDelta}px`;
+    };
+
+    resizer.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      if (!initializeWidths()) {
+        return;
+      }
+
+      resizer.setPointerCapture(event.pointerId);
+      resizer.dataset.startX = String(event.clientX);
+      resizer.dataset.startWidth = String(
+        column.getBoundingClientRect().width,
+      );
+      resizer.dataset.adjacentWidth = String(
+        adjacentColumn.getBoundingClientRect().width,
+      );
+    });
+
+    resizer.addEventListener("pointermove", (event) => {
+      if (!resizer.hasPointerCapture(event.pointerId)) {
+        return;
+      }
+
+      const delta = event.clientX - Number(resizer.dataset.startX);
+      const startWidth = Number(resizer.dataset.startWidth);
+      const adjacentWidth = Number(resizer.dataset.adjacentWidth);
+      const adjustedDelta = Math.max(
+        minimumWidth - startWidth,
+        Math.min(delta, adjacentWidth - minimumWidth),
+      );
+      column.style.width = `${startWidth + adjustedDelta}px`;
+      adjacentColumn.style.width = `${adjacentWidth - adjustedDelta}px`;
+    });
+
+    const stopResizing = (event) => {
+      if (resizer.hasPointerCapture(event.pointerId)) {
+        resizer.releasePointerCapture(event.pointerId);
+      }
+    };
+    resizer.addEventListener("pointerup", stopResizing);
+    resizer.addEventListener("pointercancel", stopResizing);
+    resizer.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+        return;
+      }
+
+      event.preventDefault();
+      resizeBy(event.key === "ArrowRight" ? 10 : -10);
     });
   }
 }
