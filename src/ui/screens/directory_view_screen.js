@@ -38,8 +38,8 @@ template.innerHTML = `
       aria-valuenow="50"
       tabindex="0"
     ></div>
-    <section class="directory-panel panel-main" id="directory-main-panel">
-      <h2>Main panel</h2>
+    <section class="directory-panel panel-main themed-scrollbar" id="directory-main-panel">
+      <div class="file-grid" role="group" aria-label="Files in current directory"></div>
     </section>
   </div>
   <directory-view-status-bar></directory-view-status-bar>
@@ -52,6 +52,7 @@ class DirectoryViewScreen extends HTMLElement {
     this.layout = this.shadowRoot.querySelector(".directory-layout");
     this.directoryList = this.shadowRoot.querySelector(".directory-list");
     this.fileList = this.shadowRoot.querySelector(".file-list");
+    this.fileGrid = this.shadowRoot.querySelector(".file-grid");
     this.directoryPathLabel = this.shadowRoot.querySelector(".directory-path");
     this.directoryError = this.shadowRoot.querySelector(".directory-error");
     this.currentPath = null;
@@ -83,6 +84,12 @@ class DirectoryViewScreen extends HTMLElement {
         this.selectEntry(this.fileList, entry);
       }
     });
+    this.fileGrid.addEventListener("click", (event) => {
+      const item = event.target.closest(".file-grid-item");
+      if (item) {
+        this.selectEntry(this.fileGrid, item);
+      }
+    });
     this.configureResizer(
       this.shadowRoot.querySelector(".vertical-divider"),
       "columns",
@@ -109,6 +116,7 @@ class DirectoryViewScreen extends HTMLElement {
     this.directoryError.textContent = "";
     this.directoryList.replaceChildren();
     this.fileList.replaceChildren();
+    this.fileGrid.replaceChildren();
 
     try {
       const listing = await window.windowControls.listDirectories(directoryPath);
@@ -132,6 +140,7 @@ class DirectoryViewScreen extends HTMLElement {
       this.directoryError.textContent = `Unable to load directories: ${error.message}`;
       this.directoryError.hidden = false;
       this.fileList.replaceChildren();
+      this.fileGrid.replaceChildren();
     }
   }
 
@@ -162,6 +171,7 @@ class DirectoryViewScreen extends HTMLElement {
 
   renderFiles(files) {
     this.fileList.replaceChildren();
+    this.fileGrid.replaceChildren();
 
     for (const file of files) {
       const entry = document.createElement("button");
@@ -171,15 +181,27 @@ class DirectoryViewScreen extends HTMLElement {
       entry.setAttribute("aria-selected", "false");
       entry.textContent = file.name;
       this.fileList.append(entry);
+
+      const gridItem = document.createElement("button");
+      gridItem.className = "file-grid-item";
+      gridItem.type = "button";
+      gridItem.setAttribute("aria-pressed", "false");
+      gridItem.title = file.name;
+      gridItem.textContent = file.name;
+      this.fileGrid.append(gridItem);
     }
   }
 
   selectEntry(list, selectedEntry) {
     for (const entry of list.querySelectorAll(
-      ".directory-entry, .file-entry",
+      ".directory-entry, .file-entry, .file-grid-item",
     )) {
       const isSelected = entry === selectedEntry;
-      entry.setAttribute("aria-selected", String(isSelected));
+      if (entry.classList.contains("file-grid-item")) {
+        entry.setAttribute("aria-pressed", String(isSelected));
+      } else {
+        entry.setAttribute("aria-selected", String(isSelected));
+      }
       entry.classList.toggle("selected", isSelected);
     }
   }
