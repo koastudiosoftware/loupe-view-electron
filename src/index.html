@@ -21,22 +21,38 @@
         color: #f3f4f6;
         font-family: "Segoe UI", sans-serif;
       }
+
+      #screen-host {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+      }
+
+      #single-image-view {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+      }
+
+      #single-image-view[hidden],
+      settings-screen[hidden] {
+        display: none;
+      }
     </style>
   </head>
   <body>
     <app-title-bar>
       <span slot="branding">Loupe View</span>
     </app-title-bar>
-    <single-image-view-screen></single-image-view-screen>
-    <image-status-bar></image-status-bar>
-    <script
-      type="module"
-      src="./ui/components/single_image_viewer_title_bar.js"
-    ></script>
-    <script
-      type="module"
-      src="./ui/components/single_image_viewer_status_bar.js"
-    ></script>
-    <script type="module" src="./ui/screens/single_image_view_screen.js"></script>
+    <div id="screen-host">
+      <div id="single-image-view" data-screen="single-image-view">
+        <single-image-view-screen></single-image-view-screen>
+        <image-status-bar></image-status-bar>
+      </div>
+      <settings-screen data-screen="settings" hidden></settings-screen>
+    </div>
+    <script type="module" src="./ui/app.js"></script>
   </body>
 </html>

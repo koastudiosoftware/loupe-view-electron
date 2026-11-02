@@ -454,6 +454,10 @@ class ImageStatusBar extends HTMLElement {
   }
 
   handleKeydown(event) {
+    if (this.closest("[hidden]")) {
+      return;
+    }
+
     const target = event.composedPath()[0];
     if (
       event.key.toLowerCase() === "h" &&
