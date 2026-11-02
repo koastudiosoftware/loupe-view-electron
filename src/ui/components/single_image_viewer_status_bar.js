@@ -27,10 +27,6 @@ template.innerHTML = `
       display: none;
     }
 
-    :host([data-screen-hidden]) {
-      display: none;
-    }
-
     * {
       box-sizing: border-box;
     }
@@ -342,7 +338,7 @@ template.innerHTML = `
         </svg>
       </button>
       <span class="status-divider" aria-hidden="true"></span>
-      <button class="status-button" type="button" aria-label="Image information" title="Image information">
+      <button class="status-button" data-action="file-info" type="button" aria-label="Image information" title="Image information">
         <svg class="info-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="none" d="M0 0h24v24H0V0z" />
           <path
@@ -437,6 +433,13 @@ class ImageStatusBar extends HTMLElement {
         this.updateZoom(String(Math.min(800, Number(this.zoomSlider.value) + 10)));
       } else if (action === "fullscreen") {
         window.windowControls.toggleFullscreen();
+      } else if (action === "file-info") {
+        this.dispatchEvent(
+          new CustomEvent("file-info-open", {
+            bubbles: true,
+            composed: true,
+          }),
+        );
       } else if (action === "single-image-view") {
         this.dispatchEvent(
           new CustomEvent("screen-navigate", {
@@ -472,7 +475,7 @@ class ImageStatusBar extends HTMLElement {
   }
 
   handleKeydown(event) {
-    if (this.hidden || this.hasAttribute("data-screen-hidden")) {
+    if (this.hidden || this.getClientRects().length === 0) {
       return;
     }
 

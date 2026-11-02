@@ -35,6 +35,7 @@ template.innerHTML = `
       <h2>Main panel</h2>
     </section>
   </div>
+  <directory-view-status-bar></directory-view-status-bar>
 `;
 
 class DirectoryViewScreen extends HTMLElement {
