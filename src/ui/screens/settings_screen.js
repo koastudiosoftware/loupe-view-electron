@@ -143,7 +143,25 @@ template.innerHTML = `
         </section>
         <section class="settings-panel" data-panel="image" hidden>
           <h2>Image</h2>
-          <div class="placeholder">Image settings will be available here.</div>
+          <div class="settings-groups">
+            <section class="setting-group" aria-labelledby="image-display-settings-title">
+              <h3 id="image-display-settings-title">Display</h3>
+              <label class="setting-row toggle-row" for="allow-image-enlargement">
+                <span>
+                  <span class="setting-label">Allow enlargement of image for zoom to fit</span>
+                  <span class="setting-description">Enlarge smaller images to fill the available view.</span>
+                </span>
+                <input id="allow-image-enlargement" type="checkbox" checked />
+              </label>
+              <label class="setting-row toggle-row" for="auto-rotate-exif">
+                <span>
+                  <span class="setting-label">Auto-rotate image using EXIF information</span>
+                  <span class="setting-description">Apply the image orientation recorded in its EXIF metadata.</span>
+                </span>
+                <input id="auto-rotate-exif" type="checkbox" checked />
+              </label>
+            </section>
+          </div>
         </section>
         <section class="settings-panel" data-panel="files" hidden>
           <h2>Files</h2>
