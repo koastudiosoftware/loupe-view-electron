@@ -165,7 +165,52 @@ template.innerHTML = `
         </section>
         <section class="settings-panel" data-panel="files" hidden>
           <h2>Files</h2>
-          <div class="placeholder">File settings will be available here.</div>
+          <div class="settings-groups">
+            <section class="setting-group" aria-labelledby="file-list-settings-title">
+              <h3 id="file-list-settings-title">File list</h3>
+              <label class="setting-row toggle-row" for="show-hidden-files">
+                <span class="setting-label">Show hidden files and folders</span>
+                <input id="show-hidden-files" type="checkbox" />
+              </label>
+              <label class="setting-row toggle-row" for="show-parent-folder">
+                <span class="setting-label">Show ".." in folder list</span>
+                <input id="show-parent-folder" type="checkbox" checked />
+              </label>
+              <label class="setting-row toggle-row" for="case-sensitive-sort">
+                <span class="setting-label">Case-sensitive sort</span>
+                <input id="case-sensitive-sort" type="checkbox" />
+              </label>
+              <label class="setting-row toggle-row" for="natural-sort-order">
+                <span class="setting-label">Natural sort order</span>
+                <input id="natural-sort-order" type="checkbox" checked />
+              </label>
+            </section>
+            <section class="setting-group" aria-labelledby="file-types-title">
+              <h3 id="file-types-title">File types</h3>
+              <div class="file-types-table-wrapper">
+                <table class="file-types-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Extension</th>
+                      <th scope="col">Windows file type description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>.jpg</td><td>JPG File</td></tr>
+                    <tr><td>.jpeg</td><td>JPEG File</td></tr>
+                    <tr><td>.png</td><td>PNG File</td></tr>
+                    <tr><td>.gif</td><td>GIF File</td></tr>
+                    <tr><td>.bmp</td><td>Bitmap Image</td></tr>
+                    <tr><td>.tif</td><td>TIF File</td></tr>
+                    <tr><td>.tiff</td><td>TIFF File</td></tr>
+                    <tr><td>.webp</td><td>WebP Image</td></tr>
+                    <tr><td>.heic</td><td>HEIC Image</td></tr>
+                    <tr><td>.avif</td><td>AVIF Image</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         </section>
         <section class="settings-panel" data-panel="keyboard" hidden>
           <h2>Keyboard</h2>
