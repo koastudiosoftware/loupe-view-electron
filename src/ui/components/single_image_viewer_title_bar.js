@@ -184,7 +184,7 @@ template.innerHTML = `
   </header>
 `;
 
-class AppTitleBar extends HTMLElement {
+class SingleImageViewerTitleBar extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" }).append(template.content.cloneNode(true));
@@ -230,4 +230,4 @@ class AppTitleBar extends HTMLElement {
   }
 }
 
-customElements.define("app-title-bar", AppTitleBar);
+customElements.define("app-title-bar", SingleImageViewerTitleBar);
