@@ -1,18 +1,18 @@
 const template = document.createElement("template");
 const fitScreenIconUrl = new URL(
-  "../assets/material-icons_fit_screen.svg",
+  "../../../assets/material-icons_fit_screen.svg",
   import.meta.url,
 ).href;
 const fullscreenIconUrl = new URL(
-  "../assets/material-icons_fullscreen.svg",
+  "../../../assets/material-icons_fullscreen.svg",
   import.meta.url,
 ).href;
 const addIconUrl = new URL(
-  "../assets/material-icons_add.svg",
+  "../../../assets/material-icons_add.svg",
   import.meta.url,
 ).href;
 const removeIconUrl = new URL(
-  "../assets/material-icons_remove.svg",
+  "../../../assets/material-icons_remove.svg",
   import.meta.url,
 ).href;
 template.innerHTML = `
