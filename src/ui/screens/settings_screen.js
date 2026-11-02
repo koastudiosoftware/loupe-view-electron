@@ -1,78 +1,72 @@
 const template = document.createElement("template");
+const stylesUrl = new URL("./settings_screen.css", import.meta.url).href;
 
 template.innerHTML = `
-  <style>
-    :host {
-      display: block;
-      min-height: 0;
-      flex: 1;
-      overflow-y: auto;
-      color: #f3f4f6;
-      font-family: "Segoe UI", sans-serif;
-    }
-
-    main {
-      width: min(100%, 760px);
-      margin: 0 auto;
-      padding: 48px 32px;
-    }
-
-    .heading {
-      margin-bottom: 32px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 600;
-      letter-spacing: -0.04em;
-    }
-
-    p {
-      margin: 10px 0 0;
-      color: #969ba7;
-      font-size: 14px;
-    }
-
-    .placeholder {
-      padding: 24px;
-      border: 1px solid #30333b;
-      border-radius: 8px;
-      background: #191b21;
-      color: #b6bac5;
-      font-size: 14px;
-    }
-
-    .back-button {
-      margin-top: 24px;
-      padding: 8px 14px;
-      border: 1px solid #3b3e48;
-      border-radius: 5px;
-      background: #22242b;
-      color: #d7d9df;
-      font: inherit;
-      cursor: pointer;
-    }
-
-    .back-button:hover {
-      background: #30333b;
-      color: #f3f4f6;
-    }
-
-    .back-button:focus-visible {
-      outline: 2px solid #a5b4fc;
-      outline-offset: 2px;
-    }
-  </style>
+  <link rel="stylesheet" href="${stylesUrl}" />
   <main>
     <header class="heading">
-      <h1>Settings</h1>
-      <p>Application preferences will be available here.</p>
+      <button class="back-button" type="button" aria-label="Back to image viewer" title="Back to image viewer">
+        <span class="back-icon" aria-hidden="true"></span>
+      </button>
+      <div>
+        <h1>Settings</h1>
+        <p>Browse application preferences by category.</p>
+      </div>
     </header>
-    <section class="placeholder" aria-label="Settings placeholder">
-      Settings are coming soon.
-    </section>
-    <button class="back-button" type="button">Back to image viewer</button>
+    <div class="settings-layout">
+      <nav class="category-list" aria-label="Settings categories">
+        <button
+          class="category-button"
+          type="button"
+          data-category="general"
+          aria-current="page"
+        >
+          General
+        </button>
+        <button
+          class="category-button"
+          type="button"
+          data-category="image"
+          aria-current="false"
+        >
+          Image
+        </button>
+        <button
+          class="category-button"
+          type="button"
+          data-category="files"
+          aria-current="false"
+        >
+          Files
+        </button>
+        <button
+          class="category-button"
+          type="button"
+          data-category="keyboard"
+          aria-current="false"
+        >
+          Keyboard
+        </button>
+      </nav>
+      <div class="settings-content">
+        <section class="settings-panel" data-panel="general">
+          <h2>General</h2>
+          <div class="placeholder">General settings will be available here.</div>
+        </section>
+        <section class="settings-panel" data-panel="image" hidden>
+          <h2>Image</h2>
+          <div class="placeholder">Image settings will be available here.</div>
+        </section>
+        <section class="settings-panel" data-panel="files" hidden>
+          <h2>Files</h2>
+          <div class="placeholder">File settings will be available here.</div>
+        </section>
+        <section class="settings-panel" data-panel="keyboard" hidden>
+          <h2>Keyboard</h2>
+          <div class="placeholder">Keyboard settings will be available here.</div>
+        </section>
+      </div>
+    </div>
   </main>
 `;
 
@@ -80,6 +74,19 @@ class SettingsScreen extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" }).append(template.content.cloneNode(true));
+    this.categoryButtons = [
+      ...this.shadowRoot.querySelectorAll(".category-button"),
+    ];
+    this.settingsPanels = [
+      ...this.shadowRoot.querySelectorAll(".settings-panel"),
+    ];
+
+    this.categoryButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        this.selectCategory(button.dataset.category);
+      });
+    });
+
     this.shadowRoot
       .querySelector(".back-button")
       .addEventListener("click", () => {
@@ -91,6 +98,18 @@ class SettingsScreen extends HTMLElement {
           }),
         );
       });
+  }
+
+  selectCategory(category) {
+    this.categoryButtons.forEach((button) => {
+      button.setAttribute(
+        "aria-current",
+        button.dataset.category === category ? "page" : "false",
+      );
+    });
+    this.settingsPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== category;
+    });
   }
 }
 
