@@ -147,6 +147,135 @@ p {
   font-weight: 600;
 }
 
+.settings-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setting-group {
+  overflow: hidden;
+  border: 1px solid #30333b;
+  border-radius: 8px;
+  background: #191b21;
+}
+
+.setting-group h3 {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid #30333b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.setting-row {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #30333b;
+}
+
+.setting-row:last-child {
+  border-bottom: 0;
+}
+
+.setting-label,
+.setting-description {
+  display: block;
+}
+
+.setting-label {
+  color: #d7d9df;
+  font-size: 13px;
+}
+
+.setting-description {
+  margin-top: 4px;
+  color: #969ba7;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.setting-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: #a5b4fc;
+}
+
+.setting-row select,
+.path-picker input {
+  min-width: 180px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #3b3e48;
+  border-radius: 4px;
+  background: #22242b;
+  color: #d7d9df;
+  font: inherit;
+  font-size: 12px;
+}
+
+.cache-directory-row {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.directory-path {
+  display: block;
+  margin-top: 8px;
+  color: #b6bac5;
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.directory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.secondary-button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid #3b3e48;
+  border-radius: 4px;
+  background: #22242b;
+  color: #d7d9df;
+  font: inherit;
+  font-size: 11px;
+}
+
+.secondary-button:disabled {
+  color: #858a97;
+  cursor: not-allowed;
+}
+
+.default-directory-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #30333b;
+}
+
+.default-directory-fields[hidden] {
+  display: none;
+}
+
+.path-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.path-picker input {
+  width: 100%;
+}
+
 .placeholder {
   min-height: 120px;
   padding: 20px;
@@ -181,5 +310,17 @@ p {
 
   .category-button[aria-current="page"] {
     box-shadow: inset 0 -2px #a5b4fc;
+  }
+
+  .setting-row {
+    align-items: flex-start;
+  }
+
+  .setting-row select {
+    min-width: 140px;
+  }
+
+  .toggle-row {
+    align-items: center;
   }
 }
