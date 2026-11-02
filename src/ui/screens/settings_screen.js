@@ -1,6 +1,6 @@
 const template = document.createElement("template");
 const stylesUrl = new URL("./settings_screen.css", import.meta.url).href;
-const scrollbarStylesUrl = new URL("../shared/scrollbar.css", import.meta.url)
+const scrollbarStylesUrl = new URL("../common/scrollbar.css", import.meta.url)
   .href;
 
 template.innerHTML = `

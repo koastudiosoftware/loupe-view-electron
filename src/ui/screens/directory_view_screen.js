@@ -1,6 +1,6 @@
 const template = document.createElement("template");
 const stylesUrl = new URL("./directory_view_screen.css", import.meta.url).href;
-const scrollbarStylesUrl = new URL("../shared/scrollbar.css", import.meta.url)
+const scrollbarStylesUrl = new URL("../common/scrollbar.css", import.meta.url)
   .href;
 
 template.innerHTML = `
@@ -9,7 +9,6 @@ template.innerHTML = `
   <div class="directory-layout">
     <section class="directory-panel panel-top themed-scrollbar" id="directory-top-panel" aria-label="Directories">
       <header class="directory-header">
-        <h2>Directories</h2>
         <p class="directory-path" aria-live="polite"></p>
       </header>
       <div class="directory-list" role="listbox" aria-label="Directory listing"></div>
@@ -26,8 +25,8 @@ template.innerHTML = `
       aria-valuenow="300"
       tabindex="0"
     ></div>
-    <section class="directory-panel panel-bottom" id="directory-bottom-panel">
-      <h2>Bottom panel</h2>
+    <section class="directory-panel panel-bottom themed-scrollbar" id="directory-bottom-panel">
+      <div class="file-list" role="listbox" aria-label="Files in current directory"></div>
     </section>
     <div
       class="panel-divider horizontal-divider"
@@ -52,6 +51,7 @@ class DirectoryViewScreen extends HTMLElement {
     this.attachShadow({ mode: "open" }).append(template.content.cloneNode(true));
     this.layout = this.shadowRoot.querySelector(".directory-layout");
     this.directoryList = this.shadowRoot.querySelector(".directory-list");
+    this.fileList = this.shadowRoot.querySelector(".file-list");
     this.directoryPathLabel = this.shadowRoot.querySelector(".directory-path");
     this.directoryError = this.shadowRoot.querySelector(".directory-error");
     this.currentPath = null;
@@ -64,7 +64,7 @@ class DirectoryViewScreen extends HTMLElement {
         return;
       }
 
-      this.selectEntry(entry);
+      this.selectEntry(this.directoryList, entry);
     });
     this.directoryList.addEventListener("dblclick", (event) => {
       const entry = event.target.closest(".directory-entry");
@@ -75,6 +75,12 @@ class DirectoryViewScreen extends HTMLElement {
       const targetPath = entry.dataset.path;
       if (targetPath) {
         this.loadDirectory(targetPath);
+      }
+    });
+    this.fileList.addEventListener("click", (event) => {
+      const entry = event.target.closest(".file-entry");
+      if (entry) {
+        this.selectEntry(this.fileList, entry);
       }
     });
     this.configureResizer(
@@ -102,6 +108,7 @@ class DirectoryViewScreen extends HTMLElement {
     this.directoryError.hidden = true;
     this.directoryError.textContent = "";
     this.directoryList.replaceChildren();
+    this.fileList.replaceChildren();
 
     try {
       const listing = await window.windowControls.listDirectories(directoryPath);
@@ -114,6 +121,7 @@ class DirectoryViewScreen extends HTMLElement {
       this.rootPath = listing.rootPath;
       this.directoryPathLabel.textContent = listing.path;
       this.renderDirectories(listing.directories);
+      this.renderFiles(listing.files);
     } catch (error) {
       if (requestId !== this.loadRequestId) {
         return;
@@ -123,6 +131,7 @@ class DirectoryViewScreen extends HTMLElement {
       this.directoryPathLabel.textContent = directoryPath;
       this.directoryError.textContent = `Unable to load directories: ${error.message}`;
       this.directoryError.hidden = false;
+      this.fileList.replaceChildren();
     }
   }
 
@@ -151,8 +160,24 @@ class DirectoryViewScreen extends HTMLElement {
     }
   }
 
-  selectEntry(selectedEntry) {
-    for (const entry of this.directoryList.querySelectorAll(".directory-entry")) {
+  renderFiles(files) {
+    this.fileList.replaceChildren();
+
+    for (const file of files) {
+      const entry = document.createElement("button");
+      entry.className = "file-entry";
+      entry.type = "button";
+      entry.setAttribute("role", "option");
+      entry.setAttribute("aria-selected", "false");
+      entry.textContent = file.name;
+      this.fileList.append(entry);
+    }
+  }
+
+  selectEntry(list, selectedEntry) {
+    for (const entry of list.querySelectorAll(
+      ".directory-entry, .file-entry",
+    )) {
       const isSelected = entry === selectedEntry;
       entry.setAttribute("aria-selected", String(isSelected));
       entry.classList.toggle("selected", isSelected);

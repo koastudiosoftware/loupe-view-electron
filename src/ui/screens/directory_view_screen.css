@@ -37,10 +37,6 @@
   border-bottom: 1px solid #30333b;
 }
 
-.directory-header h2 {
-  padding-bottom: 6px;
-}
-
 .directory-path {
   overflow: hidden;
   padding: 0 16px;
@@ -55,6 +51,35 @@
   display: flex;
   flex-direction: column;
   padding: 6px;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+}
+
+.file-entry {
+  min-height: 30px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #d7d9df;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.file-entry:hover {
+  background: #252831;
+}
+
+.file-entry:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: -2px;
 }
 
 .directory-entry {
@@ -74,7 +99,8 @@
   background: #252831;
 }
 
-.directory-entry.selected {
+.directory-entry.selected,
+.file-entry.selected {
   background: #34394a;
   color: #f3f4f6;
 }

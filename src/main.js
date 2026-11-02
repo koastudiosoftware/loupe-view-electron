@@ -80,6 +80,12 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
         name: entry.name,
         path: path.join(directoryPath, entry.name),
       })),
+    files: entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => ({
+        name: entry.name,
+        path: path.join(directoryPath, entry.name),
+      })),
   };
 });
 
