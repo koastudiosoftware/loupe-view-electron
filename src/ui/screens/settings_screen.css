@@ -7,30 +7,6 @@
   font-family: "Segoe UI", sans-serif;
 }
 
-:host::-webkit-scrollbar {
-  background-color: #111318;
-}
-
-:host::-webkit-scrollbar-track,
-:host::-webkit-scrollbar-track-piece {
-  background-color: #111318;
-}
-
-:host::-webkit-scrollbar-thumb {
-  border: 2px solid #111318;
-  border-radius: 6px;
-  background-color: #858a97;
-}
-
-:host::-webkit-scrollbar-button {
-  background-color: #858a97;
-}
-
-:host::-webkit-scrollbar-thumb:hover,
-:host::-webkit-scrollbar-button:hover {
-  background-color: #b6bac5;
-}
-
 main {
   display: flex;
   width: min(100%, 1040px);

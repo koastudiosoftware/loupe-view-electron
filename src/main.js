@@ -1,4 +1,5 @@
 const path = require("node:path");
+const fs = require("node:fs/promises");
 const { app, BrowserWindow, ipcMain } = require("electron");
 
 function createWindow() {
@@ -59,6 +60,27 @@ ipcMain.on("window:toggle-fullscreen", (event) => {
 
 ipcMain.on("window:close", (event) => {
   BrowserWindow.fromWebContents(event.sender)?.close();
+});
+
+ipcMain.handle("directory:list", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Directory path must be an absolute path.");
+  }
+
+  const directoryPath = path.resolve(requestedPath);
+  const entries = await fs.readdir(directoryPath, { withFileTypes: true });
+
+  return {
+    path: directoryPath,
+    parentPath: path.dirname(directoryPath),
+    rootPath: path.parse(directoryPath).root,
+    directories: entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => ({
+        name: entry.name,
+        path: path.join(directoryPath, entry.name),
+      })),
+  };
 });
 
 app.whenReady().then(() => {

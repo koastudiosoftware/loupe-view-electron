@@ -1,8 +1,11 @@
 const template = document.createElement("template");
 const stylesUrl = new URL("./settings_screen.css", import.meta.url).href;
+const scrollbarStylesUrl = new URL("../shared/scrollbar.css", import.meta.url)
+  .href;
 
 template.innerHTML = `
   <link rel="stylesheet" href="${stylesUrl}" />
+  <link rel="stylesheet" href="${scrollbarStylesUrl}" />
   <main>
     <header class="heading">
       <button class="back-button" type="button" aria-label="Back to image viewer" title="Back to image viewer">

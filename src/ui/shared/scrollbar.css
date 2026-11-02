@@ -1,0 +1,30 @@
+:host(.themed-scrollbar)::-webkit-scrollbar,
+.themed-scrollbar::-webkit-scrollbar {
+  background-color: #111318;
+}
+
+:host(.themed-scrollbar)::-webkit-scrollbar-track,
+:host(.themed-scrollbar)::-webkit-scrollbar-track-piece,
+.themed-scrollbar::-webkit-scrollbar-track,
+.themed-scrollbar::-webkit-scrollbar-track-piece {
+  background-color: #111318;
+}
+
+:host(.themed-scrollbar)::-webkit-scrollbar-thumb,
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid #111318;
+  border-radius: 6px;
+  background-color: #858a97;
+}
+
+:host(.themed-scrollbar)::-webkit-scrollbar-button,
+.themed-scrollbar::-webkit-scrollbar-button {
+  background-color: #858a97;
+}
+
+:host(.themed-scrollbar)::-webkit-scrollbar-thumb:hover,
+:host(.themed-scrollbar)::-webkit-scrollbar-button:hover,
+.themed-scrollbar::-webkit-scrollbar-thumb:hover,
+.themed-scrollbar::-webkit-scrollbar-button:hover {
+  background-color: #b6bac5;
+}

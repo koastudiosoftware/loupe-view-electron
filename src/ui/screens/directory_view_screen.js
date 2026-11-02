@@ -1,11 +1,19 @@
 const template = document.createElement("template");
 const stylesUrl = new URL("./directory_view_screen.css", import.meta.url).href;
+const scrollbarStylesUrl = new URL("../shared/scrollbar.css", import.meta.url)
+  .href;
 
 template.innerHTML = `
   <link rel="stylesheet" href="${stylesUrl}" />
+  <link rel="stylesheet" href="${scrollbarStylesUrl}" />
   <div class="directory-layout">
-    <section class="directory-panel panel-top" id="directory-top-panel">
-      <h2>Top panel</h2>
+    <section class="directory-panel panel-top themed-scrollbar" id="directory-top-panel" aria-label="Directories">
+      <header class="directory-header">
+        <h2>Directories</h2>
+        <p class="directory-path" aria-live="polite"></p>
+      </header>
+      <div class="directory-list" role="listbox" aria-label="Directory listing"></div>
+      <p class="directory-error" role="alert" hidden></p>
     </section>
     <div
       class="panel-divider vertical-divider"
@@ -43,6 +51,32 @@ class DirectoryViewScreen extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" }).append(template.content.cloneNode(true));
     this.layout = this.shadowRoot.querySelector(".directory-layout");
+    this.directoryList = this.shadowRoot.querySelector(".directory-list");
+    this.directoryPathLabel = this.shadowRoot.querySelector(".directory-path");
+    this.directoryError = this.shadowRoot.querySelector(".directory-error");
+    this.currentPath = null;
+    this.parentPath = null;
+    this.rootPath = null;
+    this.loadRequestId = 0;
+    this.directoryList.addEventListener("click", (event) => {
+      const entry = event.target.closest(".directory-entry");
+      if (!entry || entry.disabled) {
+        return;
+      }
+
+      this.selectEntry(entry);
+    });
+    this.directoryList.addEventListener("dblclick", (event) => {
+      const entry = event.target.closest(".directory-entry");
+      if (!entry || entry.disabled) {
+        return;
+      }
+
+      const targetPath = entry.dataset.path;
+      if (targetPath) {
+        this.loadDirectory(targetPath);
+      }
+    });
     this.configureResizer(
       this.shadowRoot.querySelector(".vertical-divider"),
       "columns",
@@ -55,6 +89,74 @@ class DirectoryViewScreen extends HTMLElement {
       "rows",
       120,
     );
+  }
+
+  connectedCallback() {
+    if (!this.currentPath) {
+      this.loadDirectory("C:\\");
+    }
+  }
+
+  async loadDirectory(directoryPath) {
+    const requestId = ++this.loadRequestId;
+    this.directoryError.hidden = true;
+    this.directoryError.textContent = "";
+    this.directoryList.replaceChildren();
+
+    try {
+      const listing = await window.windowControls.listDirectories(directoryPath);
+      if (requestId !== this.loadRequestId) {
+        return;
+      }
+
+      this.currentPath = listing.path;
+      this.parentPath = listing.parentPath;
+      this.rootPath = listing.rootPath;
+      this.directoryPathLabel.textContent = listing.path;
+      this.renderDirectories(listing.directories);
+    } catch (error) {
+      if (requestId !== this.loadRequestId) {
+        return;
+      }
+
+      this.currentPath = directoryPath;
+      this.directoryPathLabel.textContent = directoryPath;
+      this.directoryError.textContent = `Unable to load directories: ${error.message}`;
+      this.directoryError.hidden = false;
+    }
+  }
+
+  renderDirectories(directories) {
+    const atRoot =
+      this.currentPath.toLowerCase() === this.rootPath.toLowerCase();
+    const parentEntry = document.createElement("button");
+    parentEntry.className = "directory-entry parent-entry";
+    parentEntry.type = "button";
+    parentEntry.textContent = "..";
+    parentEntry.dataset.path = atRoot ? "" : this.parentPath;
+    parentEntry.setAttribute("role", "option");
+    parentEntry.setAttribute("aria-selected", "false");
+    parentEntry.disabled = atRoot;
+    this.directoryList.append(parentEntry);
+
+    for (const directory of directories) {
+      const entry = document.createElement("button");
+      entry.className = "directory-entry";
+      entry.type = "button";
+      entry.textContent = directory.name;
+      entry.dataset.path = directory.path;
+      entry.setAttribute("role", "option");
+      entry.setAttribute("aria-selected", "false");
+      this.directoryList.append(entry);
+    }
+  }
+
+  selectEntry(selectedEntry) {
+    for (const entry of this.directoryList.querySelectorAll(".directory-entry")) {
+      const isSelected = entry === selectedEntry;
+      entry.setAttribute("aria-selected", String(isSelected));
+      entry.classList.toggle("selected", isSelected);
+    }
   }
 
   configureResizer(

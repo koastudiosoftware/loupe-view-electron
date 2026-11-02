@@ -32,6 +32,70 @@
   font-weight: 600;
 }
 
+.directory-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #30333b;
+}
+
+.directory-header h2 {
+  padding-bottom: 6px;
+}
+
+.directory-path {
+  overflow: hidden;
+  padding: 0 16px;
+  margin: 0;
+  color: #969ba7;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-list {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+}
+
+.directory-entry {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #d7d9df;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.directory-entry:hover:not(:disabled) {
+  background: #252831;
+}
+
+.directory-entry.selected {
+  background: #34394a;
+  color: #f3f4f6;
+}
+
+.directory-entry:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: -2px;
+}
+
+.directory-entry:disabled {
+  color: #777b86;
+  cursor: default;
+}
+
+.directory-error {
+  padding: 0 16px;
+  color: #fca5a5;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .panel-top {
   grid-area: 1 / 1;
 }

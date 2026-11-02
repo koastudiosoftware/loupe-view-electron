@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("windowControls", {
   minimize: () => ipcRenderer.send("window:minimize"),
   toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),
   toggleFullscreen: () => ipcRenderer.send("window:toggle-fullscreen"),
+  listDirectories: (directoryPath) =>
+    ipcRenderer.invoke("directory:list", directoryPath),
   onMaximizedChange: (callback) => {
     const listener = (_event, isMaximized) => callback(isMaximized);
     ipcRenderer.on("window:maximized", listener);
