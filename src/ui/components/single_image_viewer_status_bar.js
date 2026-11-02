@@ -27,6 +27,10 @@ template.innerHTML = `
       display: none;
     }
 
+    :host([data-screen-hidden]) {
+      display: none;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -305,7 +309,13 @@ template.innerHTML = `
     title="Press H to hide or show this status bar"
   >
     <div class="status-group">
-      <button class="status-button" type="button" aria-label="Film view" title="Film view">
+      <button
+        class="status-button"
+        data-action="directory-view"
+        type="button"
+        aria-label="Film view"
+        title="Film view"
+      >
         <svg
           class="zoom-icon view-carousel-icon"
           viewBox="0 0 24 24"
@@ -427,6 +437,14 @@ class ImageStatusBar extends HTMLElement {
         this.updateZoom(String(Math.min(800, Number(this.zoomSlider.value) + 10)));
       } else if (action === "fullscreen") {
         window.windowControls.toggleFullscreen();
+      } else if (action === "directory-view") {
+        this.dispatchEvent(
+          new CustomEvent("screen-navigate", {
+            bubbles: true,
+            composed: true,
+            detail: { screen: "directory-view" },
+          }),
+        );
       } else if (action === "preset") {
         const preset = event.target.closest("[data-zoom]");
         this.updateZoom(
@@ -454,7 +472,7 @@ class ImageStatusBar extends HTMLElement {
   }
 
   handleKeydown(event) {
-    if (this.closest("[hidden]")) {
+    if (this.hidden || this.hasAttribute("data-screen-hidden")) {
       return;
     }
 

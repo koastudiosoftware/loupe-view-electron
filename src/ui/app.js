@@ -1,6 +1,7 @@
 import "./components/single_image_viewer_title_bar.js";
 import "./components/single_image_viewer_status_bar.js";
 import "./screens/single_image_view_screen.js";
+import "./screens/directory_view_screen.js";
 import "./screens/settings_screen.js";
 
 const screens = new Map(
@@ -9,6 +10,7 @@ const screens = new Map(
     screen,
   ]),
 );
+const statusBar = document.getElementById("screen-status-bar");
 
 document.addEventListener("screen-navigate", (event) => {
   const activeScreen = screens.get(event.detail?.screen);
@@ -19,4 +21,8 @@ document.addEventListener("screen-navigate", (event) => {
   screens.forEach((screen) => {
     screen.hidden = screen !== activeScreen;
   });
+  statusBar.toggleAttribute(
+    "data-screen-hidden",
+    activeScreen.dataset.screen === "settings",
+  );
 });

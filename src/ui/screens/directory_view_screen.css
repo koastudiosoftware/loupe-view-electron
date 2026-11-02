@@ -1,0 +1,76 @@
+:host {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.directory-layout {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: 300px 6px minmax(0, 1fr);
+  grid-template-rows: minmax(120px, 1fr) 6px minmax(120px, 1fr);
+  background: #111318;
+}
+
+.directory-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: #191b21;
+}
+
+.directory-panel h2 {
+  margin: 0;
+  padding: 14px 16px;
+  color: #d7d9df;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.panel-top {
+  grid-area: 1 / 1;
+}
+
+.panel-bottom {
+  grid-area: 3 / 1;
+}
+
+.panel-main {
+  grid-area: 1 / 3 / 4 / 4;
+  background: #111318;
+}
+
+.panel-main h2 {
+  padding: 18px 20px;
+}
+
+.panel-divider {
+  z-index: 1;
+  background: #30333b;
+  touch-action: none;
+  user-select: none;
+}
+
+.panel-divider:hover,
+.panel-divider:focus-visible {
+  background: #a5b4fc;
+}
+
+.panel-divider:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 1px;
+}
+
+.vertical-divider {
+  grid-area: 1 / 2 / 4 / 3;
+  cursor: col-resize;
+}
+
+.horizontal-divider {
+  grid-area: 2 / 1 / 3 / 2;
+  cursor: row-resize;
+}
