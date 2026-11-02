@@ -1,106 +1,27 @@
 const template = document.createElement("template");
+const stylesUrl = new URL("./single_image_view_screen.css", import.meta.url).href;
 
 template.innerHTML = `
-  <style>
-    :host {
-      display: flex;
-      min-height: 0;
-      flex: 1;
-      color: #f3f4f6;
-      font-family: "Segoe UI", sans-serif;
-      text-align: center;
-    }
-
-    main {
-      display: grid;
-      min-width: 0;
-      height: 100%;
-      min-height: 0;
-      flex: 1;
-      place-content: center;
-      padding: 48px;
-    }
-
-    .mark {
-      display: grid;
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 24px;
-      place-items: center;
-      border: 1px solid #343943;
-      border-radius: 18px;
-      color: #a5b4fc;
-      font-size: 30px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 600;
-      letter-spacing: -0.04em;
-    }
-
-    p {
-      margin: 10px 0 0;
-      color: #969ba7;
-      font-size: 15px;
-    }
-
-    .file-info-panel {
-      flex: 0 1 400px;
-      min-width: 0;
-      max-width: 100%;
-      height: 100%;
-      overflow: auto;
-      background: #191b21;
-      box-shadow: 8px 0 24px rgb(0 0 0 / 35%);
-      text-align: left;
-    }
-
-    .file-info-panel[hidden] {
-      display: none;
-    }
-
-    .file-info-header {
-      display: flex;
-      min-height: 56px;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      border-bottom: 1px solid #30333b;
-    }
-
-    .file-info-header h2 {
-      margin: 0;
-      color: #f3f4f6;
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .close-button {
-      display: grid;
-      width: 32px;
-      height: 32px;
-      place-items: center;
-      border: 0;
-      border-radius: 4px;
-      background: transparent;
-      color: #c4c7cf;
-      cursor: pointer;
-      font-size: 22px;
-    }
-
-    .close-button:hover,
-    .close-button:focus-visible {
-      background: #30333b;
-      color: #fff;
-    }
-  </style>
+  <link rel="stylesheet" href="${stylesUrl}" />
   <aside class="file-info-panel" aria-label="File information" hidden>
     <header class="file-info-header">
       <h2>File information</h2>
       <button class="close-button" type="button" aria-label="Close file information">&times;</button>
     </header>
+    <div class="file-info-actions" role="group" aria-label="File information categories">
+      <button class="file-info-action" type="button" aria-label="File Details">
+        <span class="file-info-icon lab-profile-icon" aria-hidden="true"></span>
+        <span>File Details</span>
+      </button>
+      <button class="file-info-action" type="button" aria-label="EXIF Details">
+        <span class="file-info-icon photo-camera-icon" aria-hidden="true"></span>
+        <span>EXIF Details</span>
+      </button>
+      <button class="file-info-action" type="button" aria-label="Image Specs">
+        <span class="file-info-icon image-icon" aria-hidden="true"></span>
+        <span>Image Specs</span>
+      </button>
+    </div>
   </aside>
   <main id="image-canvas">
     <div class="mark" aria-hidden="true">⌕</div>
