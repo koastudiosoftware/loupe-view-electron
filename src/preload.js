@@ -8,8 +8,7 @@ contextBridge.exposeInMainWorld("windowControls", {
   listDirectories: (directoryPath) =>
     ipcRenderer.invoke("directory:list", directoryPath),
   getImageUrl: (imagePath) => ipcRenderer.invoke("image:get-url", imagePath),
-  getImageMetadata: (imagePath) =>
-    ipcRenderer.invoke("image:get-metadata", imagePath),
+  getImageInfo: (imagePath) => ipcRenderer.invoke("image:get-info", imagePath),
   getThumbnail: (imagePath) => ipcRenderer.invoke("thumbnail:get", imagePath),
   chooseThumbnailCacheDirectory: () =>
     ipcRenderer.invoke("thumbnail-cache:choose-directory"),

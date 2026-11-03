@@ -4,6 +4,8 @@ const { createHash, randomUUID } = require("node:crypto");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const { pathToFileURL } = require("node:url");
+const exifr = require("exifr");
+const sharp = require("sharp");
 const {
   app,
   BrowserWindow,
@@ -370,7 +372,35 @@ ipcMain.handle("image:get-url", async (_event, requestedPath) => {
   return pathToFileURL(imagePath).href;
 });
 
-ipcMain.handle("image:get-metadata", async (_event, requestedPath) => {
+function makeExifValuesSerializable(value) {
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (Buffer.isBuffer(value) || ArrayBuffer.isView(value)) {
+    return "[Binary Data / Array]";
+  }
+  if (Array.isArray(value)) {
+    return value.map(makeExifValuesSerializable);
+  }
+  if (value && typeof value === "object") {
+    if (value instanceof ArrayBuffer) {
+      return "[Binary Data / Array]";
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key,
+        makeExifValuesSerializable(child),
+      ]),
+    );
+  }
+  return value;
+}
+
+ipcMain.handle("image:get-info", async (_event, requestedPath) => {
   if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
     throw new TypeError("Image path must be an absolute path.");
   }
@@ -381,9 +411,62 @@ ipcMain.handle("image:get-metadata", async (_event, requestedPath) => {
     throw new Error("The requested image is not a file.");
   }
 
+  const [exifResult, imageResult] = await Promise.allSettled([
+    fs
+      .readFile(imagePath)
+      .then((imageBuffer) =>
+        exifr.parse(imageBuffer, {
+          tiff: true,
+          ifd1: true,
+          interop: true,
+          makerNote: true,
+          userComment: true,
+          mergeOutput: false,
+        }),
+      ),
+    sharp(imagePath).metadata(),
+  ]);
+  const exif =
+    exifResult.status === "fulfilled" && exifResult.value
+      ? makeExifValuesSerializable(exifResult.value)
+      : {};
+  const imageMetadata =
+    imageResult.status === "fulfilled" ? imageResult.value : null;
+
   return {
-    fileType: path.extname(imagePath).slice(1).toUpperCase(),
-    fileSize: fileStat.size,
+    file: {
+      folderLocation: path.dirname(imagePath),
+      fileName: path.basename(imagePath),
+      fileType: path.extname(imagePath).slice(1).toUpperCase(),
+      modifiedAt: fileStat.mtime.toISOString(),
+      fileSize: fileStat.size,
+    },
+    exif,
+    exifError:
+      exifResult.status === "rejected"
+        ? (exifResult.reason?.message ?? String(exifResult.reason))
+        : null,
+    image: imageMetadata
+      ? {
+          format: imageMetadata.format,
+          mediaType: imageMetadata.mediaType,
+          width: imageMetadata.width,
+          height: imageMetadata.height,
+          autoOrient: imageMetadata.autoOrient,
+          space: imageMetadata.space,
+          channels: imageMetadata.channels,
+          depth: imageMetadata.depth,
+          bitsPerSample: imageMetadata.bitsPerSample,
+          isProgressive: imageMetadata.isProgressive,
+          isPalette: imageMetadata.isPalette,
+          hasAlpha: imageMetadata.hasAlpha,
+          compression: imageMetadata.compression,
+        }
+      : null,
+    imageError:
+      imageResult.status === "rejected"
+        ? (imageResult.reason?.message ?? String(imageResult.reason))
+        : null,
   };
 });
 
