@@ -72,6 +72,7 @@ class DirectoryViewScreen extends HTMLElement {
     this.currentPath = null;
     this.parentPath = null;
     this.rootPath = null;
+    this.directories = [];
     this.files = [];
     this.fileTypeSettings = null;
     this.settingsChangeVersion = 0;
@@ -81,6 +82,13 @@ class DirectoryViewScreen extends HTMLElement {
       this.settingsChangeVersion += 1;
       this.fileTypeSettings = event.detail;
       this.updateThumbnailDisplaySize();
+      if (
+        this.currentPath &&
+        this.previousFileTypeSettings?.["show-hidden-files"] !==
+        this.fileTypeSettings["show-hidden-files"]
+      ) {
+        this.renderDirectories(this.directories);
+      }
       const thumbnailSettingChanged = [
         "cache-thumbnails",
         "thumbnail-size",
@@ -163,6 +171,9 @@ class DirectoryViewScreen extends HTMLElement {
       this.fileTypeSettings = settings;
       this.previousFileTypeSettings = settings;
       this.updateThumbnailDisplaySize();
+      if (this.currentPath) {
+        this.renderDirectories(this.directories);
+      }
       this.fileGridError.hidden = true;
       this.renderFileGrid();
     } catch (error) {
@@ -193,9 +204,10 @@ class DirectoryViewScreen extends HTMLElement {
       this.currentPath = listing.path;
       this.parentPath = listing.parentPath;
       this.rootPath = listing.rootPath;
+      this.directories = listing.directories;
       this.files = listing.files;
       this.directoryPathLabel.textContent = listing.path;
-      this.renderDirectories(listing.directories);
+      this.renderDirectories(this.directories);
       this.renderFiles();
     } catch (error) {
       if (requestId !== this.loadRequestId) {
@@ -206,6 +218,7 @@ class DirectoryViewScreen extends HTMLElement {
       this.directoryPathLabel.textContent = directoryPath;
       this.directoryError.textContent = `Unable to load directories: ${error.message}`;
       this.directoryError.hidden = false;
+      this.directories = [];
       this.files = [];
       this.fileList.replaceChildren();
       this.fileGrid.replaceChildren();
@@ -213,6 +226,10 @@ class DirectoryViewScreen extends HTMLElement {
   }
 
   renderDirectories(directories) {
+    this.directoryList.replaceChildren();
+    const visibleDirectories = this.fileTypeSettings?.["show-hidden-files"]
+      ? directories
+      : directories.filter((directory) => !directory.name.startsWith("."));
     const atRoot =
       this.currentPath.toLowerCase() === this.rootPath.toLowerCase();
     const parentEntry = document.createElement("button");
@@ -225,7 +242,7 @@ class DirectoryViewScreen extends HTMLElement {
     parentEntry.disabled = atRoot;
     this.directoryList.append(parentEntry);
 
-    for (const directory of directories) {
+    for (const directory of visibleDirectories) {
       const entry = document.createElement("button");
       entry.className = "directory-entry";
       entry.type = "button";
