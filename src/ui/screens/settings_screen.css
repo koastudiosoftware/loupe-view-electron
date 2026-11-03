@@ -292,6 +292,14 @@ p {
   border-bottom: 1px solid #30333b;
 }
 
+.file-types-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #a5b4fc;
+  vertical-align: middle;
+}
+
 .file-types-table th {
   position: relative;
   background: #252831;

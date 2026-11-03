@@ -195,21 +195,52 @@ template.innerHTML = `
                 <table class="file-types-table">
                   <thead>
                     <tr>
+                      <th scope="col">Enabled</th>
                       <th scope="col">Extension</th>
                       <th scope="col">Windows file type description</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td>.jpg</td><td>JPG File</td></tr>
-                    <tr><td>.jpeg</td><td>JPEG File</td></tr>
-                    <tr><td>.png</td><td>PNG File</td></tr>
-                    <tr><td>.gif</td><td>GIF File</td></tr>
-                    <tr><td>.bmp</td><td>Bitmap Image</td></tr>
-                    <tr><td>.tif</td><td>TIF File</td></tr>
-                    <tr><td>.tiff</td><td>TIFF File</td></tr>
-                    <tr><td>.webp</td><td>WebP Image</td></tr>
-                    <tr><td>.heic</td><td>HEIC Image</td></tr>
-                    <tr><td>.avif</td><td>AVIF Image</td></tr>
+                    <tr>
+                      <td><input id="file-type-jpg" type="checkbox" checked aria-label="Enable JPG files" /></td>
+                      <td>.jpg</td><td data-file-type-description=".jpg">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-jpeg" type="checkbox" checked aria-label="Enable JPEG files" /></td>
+                      <td>.jpeg</td><td data-file-type-description=".jpeg">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-png" type="checkbox" checked aria-label="Enable PNG files" /></td>
+                      <td>.png</td><td data-file-type-description=".png">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-gif" type="checkbox" checked aria-label="Enable GIF files" /></td>
+                      <td>.gif</td><td data-file-type-description=".gif">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-bmp" type="checkbox" checked aria-label="Enable BMP files" /></td>
+                      <td>.bmp</td><td data-file-type-description=".bmp">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-tif" type="checkbox" checked aria-label="Enable TIF files" /></td>
+                      <td>.tif</td><td data-file-type-description=".tif">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-tiff" type="checkbox" checked aria-label="Enable TIFF files" /></td>
+                      <td>.tiff</td><td data-file-type-description=".tiff">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-webp" type="checkbox" checked aria-label="Enable WebP files" /></td>
+                      <td>.webp</td><td data-file-type-description=".webp">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-heic" type="checkbox" checked aria-label="Enable HEIC files" /></td>
+                      <td>.heic</td><td data-file-type-description=".heic">Loading…</td>
+                    </tr>
+                    <tr>
+                      <td><input id="file-type-avif" type="checkbox" checked aria-label="Enable AVIF files" /></td>
+                      <td>.avif</td><td data-file-type-description=".avif">Loading…</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -371,6 +402,7 @@ class SettingsScreen extends HTMLElement {
         this.addSettingsSaveListener(control);
       });
       this.updateDefaultDirectoryFields();
+      this.loadFileTypeDescriptions();
     } catch (error) {
       this.showSettingsStorageError(
         `Unable to load settings: ${error.message ?? String(error)}`,
@@ -381,6 +413,23 @@ class SettingsScreen extends HTMLElement {
   addSettingsSaveListener(control) {
     const eventName = control.type === "text" ? "input" : "change";
     control.addEventListener(eventName, () => this.saveSettings());
+  }
+
+  async loadFileTypeDescriptions() {
+    try {
+      const descriptions =
+        await window.windowControls.getFileTypeDescriptions();
+      this.shadowRoot
+        .querySelectorAll("[data-file-type-description]")
+        .forEach((cell) => {
+          const description = descriptions[cell.dataset.fileTypeDescription];
+          cell.textContent = description || "Unknown file type";
+        });
+    } catch (error) {
+      this.showSettingsStorageError(
+        `Unable to load Windows file type descriptions: ${error.message ?? String(error)}`,
+      );
+    }
   }
 
   async saveSettings() {

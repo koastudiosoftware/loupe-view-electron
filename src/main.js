@@ -1,7 +1,22 @@
 const path = require("node:path");
 const fs = require("node:fs/promises");
+const { execFile } = require("node:child_process");
+const { promisify } = require("node:util");
 const { app, BrowserWindow, ipcMain, screen } = require("electron");
 
+const execFileAsync = promisify(execFile);
+const imageFileExtensions = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".bmp",
+  ".tif",
+  ".tiff",
+  ".webp",
+  ".heic",
+  ".avif",
+];
 const defaultSettings = {
   "cache-thumbnails": true,
   "thumbnail-size": "medium",
@@ -16,6 +31,16 @@ const defaultSettings = {
   "show-parent-folder": true,
   "case-sensitive-sort": false,
   "natural-sort-order": true,
+  "file-type-jpg": true,
+  "file-type-jpeg": true,
+  "file-type-png": true,
+  "file-type-gif": true,
+  "file-type-bmp": true,
+  "file-type-tif": true,
+  "file-type-tiff": true,
+  "file-type-webp": true,
+  "file-type-heic": true,
+  "file-type-avif": true,
 };
 const settingsPath = () => path.join(app.getPath("userData"), "settings.json");
 const windowStatePath = () =>
@@ -288,6 +313,75 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
         path: path.join(directoryPath, entry.name),
       })),
   };
+});
+
+ipcMain.handle("file-types:descriptions", async () => {
+  if (process.platform !== "win32") {
+    throw new Error("Windows file type descriptions are only available on Windows.");
+  }
+
+  const extensions = JSON.stringify(imageFileExtensions);
+  const script = `
+    $ErrorActionPreference = 'Stop'
+    $signature = @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class LoupeShellFileInfo {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct SHFILEINFO {
+        public IntPtr hIcon;
+        public int iIcon;
+        public uint dwAttributes;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szDisplayName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+        public string szTypeName;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr SHGetFileInfo(
+        string path,
+        uint fileAttributes,
+        out SHFILEINFO fileInfo,
+        uint fileInfoSize,
+        uint flags
+    );
+}
+'@
+    Add-Type -TypeDefinition $signature
+    $extensions = ConvertFrom-Json '${extensions}'
+    $results = foreach ($extension in $extensions) {
+      $fileInfo = New-Object LoupeShellFileInfo+SHFILEINFO
+      [void][LoupeShellFileInfo]::SHGetFileInfo(
+        "LoupeView$extension",
+        0x80,
+        [ref]$fileInfo,
+        [uint32][Runtime.InteropServices.Marshal]::SizeOf($fileInfo),
+        0x410
+      )
+      [pscustomobject]@{
+        extension = $extension
+        description = $fileInfo.szTypeName
+      }
+    }
+    ConvertTo-Json -InputObject @($results) -Compress
+  `;
+  const encodedScript = Buffer.from(script, "utf16le").toString("base64");
+  const { stdout } = await execFileAsync(
+    "powershell.exe",
+    ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", encodedScript],
+    { windowsHide: true, timeout: 10000, maxBuffer: 1024 * 1024 },
+  );
+  const results = JSON.parse(stdout.trim());
+
+  if (!Array.isArray(results)) {
+    throw new Error("Windows returned an invalid file type description list.");
+  }
+
+  return Object.fromEntries(
+    results.map(({ extension, description }) => [extension, description]),
+  );
 });
 
 ipcMain.handle("settings:load", async () => {

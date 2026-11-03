@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("windowControls", {
   toggleFullscreen: () => ipcRenderer.send("window:toggle-fullscreen"),
   listDirectories: (directoryPath) =>
     ipcRenderer.invoke("directory:list", directoryPath),
+  getFileTypeDescriptions: () => ipcRenderer.invoke("file-types:descriptions"),
   loadSettings: () => ipcRenderer.invoke("settings:load"),
   saveSettings: (settings) => ipcRenderer.invoke("settings:save", settings),
   onMaximizedChange: (callback) => {
