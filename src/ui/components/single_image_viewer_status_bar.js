@@ -55,15 +55,15 @@ template.innerHTML = `
       <div class="image-metadata" aria-label="Image details">
         <div class="metadata-item">
           <span class="metadata-label">Type</span>
-          <span class="metadata-value">—</span>
+          <span class="metadata-value" data-metadata="file-type">—</span>
         </div>
         <div class="metadata-item">
           <span class="metadata-label">Dimensions</span>
-          <span class="metadata-value">— × —</span>
+          <span class="metadata-value" data-metadata="dimensions">— × —</span>
         </div>
         <div class="metadata-item">
           <span class="metadata-label">File size</span>
-          <span class="metadata-value">—</span>
+          <span class="metadata-value" data-metadata="file-size">—</span>
         </div>
       </div>
     </div>
@@ -125,6 +125,16 @@ class ImageStatusBar extends HTMLElement {
     this.fullscreenButton = this.shadowRoot.querySelector(
       '[data-action="fullscreen"]',
     );
+    this.metadataFields = {
+      fileType: this.shadowRoot.querySelector('[data-metadata="file-type"]'),
+      dimensions: this.shadowRoot.querySelector(
+        '[data-metadata="dimensions"]',
+      ),
+      fileSize: this.shadowRoot.querySelector('[data-metadata="file-size"]'),
+    };
+    this.handleImageOpen = () => this.updateImageMetadata(null);
+    this.handleImageMetadata = (event) =>
+      this.updateImageMetadata(event.detail);
     this.currentZoom = Number(this.zoomSlider.value);
     this.handleZoomStep = (event) => {
       const zoom = Math.max(
@@ -184,6 +194,8 @@ class ImageStatusBar extends HTMLElement {
     document.addEventListener("keydown", this.handleKeydown);
     document.addEventListener("zoom-step", this.handleZoomStep);
     document.addEventListener("zoom-reset", this.handleZoomReset);
+    document.addEventListener("image-open", this.handleImageOpen);
+    document.addEventListener("image-metadata", this.handleImageMetadata);
     this.removeFullscreenListener = window.windowControls.onFullscreenChange(
       (isFullScreen) => this.updateFullscreenState(isFullScreen),
     );
@@ -193,6 +205,8 @@ class ImageStatusBar extends HTMLElement {
     document.removeEventListener("keydown", this.handleKeydown);
     document.removeEventListener("zoom-step", this.handleZoomStep);
     document.removeEventListener("zoom-reset", this.handleZoomReset);
+    document.removeEventListener("image-open", this.handleImageOpen);
+    document.removeEventListener("image-metadata", this.handleImageMetadata);
     this.removeFullscreenListener?.();
   }
 
@@ -233,6 +247,34 @@ class ImageStatusBar extends HTMLElement {
         detail: { zoom: Number(value) },
       }),
     );
+  }
+
+  updateImageMetadata(metadata) {
+    this.metadataFields.fileType.textContent = metadata?.fileType ?? "—";
+    this.metadataFields.dimensions.textContent =
+      metadata
+        ? `${metadata.width.toLocaleString()} × ${metadata.height.toLocaleString()}`
+        : "— × —";
+    this.metadataFields.fileSize.textContent = metadata
+      ? this.formatFileSize(metadata.fileSize)
+      : "—";
+  }
+
+  formatFileSize(bytes) {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    const units = ["KB", "MB", "GB", "TB"];
+    let size = bytes / 1024;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex += 1;
+    }
+    return `${new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: 1,
+    }).format(size)} ${units[unitIndex]}`;
   }
 
   updateFullscreenState(isFullScreen) {

@@ -370,6 +370,23 @@ ipcMain.handle("image:get-url", async (_event, requestedPath) => {
   return pathToFileURL(imagePath).href;
 });
 
+ipcMain.handle("image:get-metadata", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Image path must be an absolute path.");
+  }
+
+  const imagePath = path.resolve(requestedPath);
+  const fileStat = await fs.stat(imagePath);
+  if (!fileStat.isFile()) {
+    throw new Error("The requested image is not a file.");
+  }
+
+  return {
+    fileType: path.extname(imagePath).slice(1).toUpperCase(),
+    fileSize: fileStat.size,
+  };
+});
+
 ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
   if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
     throw new TypeError("Image path must be an absolute path.");

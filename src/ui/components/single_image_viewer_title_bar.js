@@ -30,7 +30,10 @@ template.innerHTML = `
         </svg>
       </button>
     </div>
-    <div class="screen-content"><slot name="screen-content"></slot></div>
+    <div class="screen-content">
+      <span class="image-title" hidden></span>
+      <slot name="screen-content"></slot>
+    </div>
     <div class="window-controls">
       <button data-action="minimize" type="button" aria-label="Minimize window" title="Minimize">
         <svg viewBox="0 0 12 12" aria-hidden="true">
@@ -67,6 +70,13 @@ class SingleImageViewerTitleBar extends HTMLElement {
       '[data-setting="enable-file-deletes"]',
     );
     this.settingsChangeVersion = 0;
+    this.imageTitle = this.shadowRoot.querySelector(".image-title");
+    this.handleImageOpen = (event) => {
+      const fileName = event.detail.path.split(/[\\/]/).pop();
+      this.imageTitle.textContent = fileName;
+      this.imageTitle.title = fileName;
+      this.imageTitle.hidden = false;
+    };
     this.handleSettingsChanged = (event) => {
       this.settingsChangeVersion += 1;
       this.updateDeleteButton(event.detail);
@@ -98,6 +108,7 @@ class SingleImageViewerTitleBar extends HTMLElement {
   }
 
   connectedCallback() {
+    document.addEventListener("image-open", this.handleImageOpen);
     document.addEventListener("settings-changed", this.handleSettingsChanged);
     this.loadDeleteSetting();
     this.removeMaximizedListener = window.windowControls.onMaximizedChange(
@@ -106,6 +117,7 @@ class SingleImageViewerTitleBar extends HTMLElement {
   }
 
   disconnectedCallback() {
+    document.removeEventListener("image-open", this.handleImageOpen);
     document.removeEventListener(
       "settings-changed",
       this.handleSettingsChanged,

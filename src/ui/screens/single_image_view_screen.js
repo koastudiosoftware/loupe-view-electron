@@ -281,16 +281,37 @@ class SingleImageViewScreen extends HTMLElement {
     this.constrainPan();
     this.imageError.hidden = true;
     try {
-      const imageUrl = await window.windowControls.getImageUrl(imagePath);
+      const [imageUrl, fileMetadata] = await Promise.all([
+        window.windowControls.getImageUrl(imagePath),
+        window.windowControls.getImageMetadata(imagePath),
+      ]);
       if (requestId !== this.imageRequestId) {
         return;
       }
 
       this.imageLoadRequestId = requestId;
-      this.imagePreview.src = imageUrl;
+      this.imagePreview.onload = () => {
+        if (requestId !== this.imageRequestId) {
+          return;
+        }
+
+        this.dispatchEvent(
+          new CustomEvent("image-metadata", {
+            bubbles: true,
+            composed: true,
+            detail: {
+              ...fileMetadata,
+              width: this.imagePreview.naturalWidth,
+              height: this.imagePreview.naturalHeight,
+            },
+          }),
+        );
+        this.constrainPan();
+      };
       this.imagePreview.alt = imagePath.split(/[\\/]/).pop();
       this.imagePreview.hidden = false;
       this.imageCanvas.classList.add("has-image");
+      this.imagePreview.src = imageUrl;
       this.constrainPan();
     } catch (error) {
       if (requestId !== this.imageRequestId) {

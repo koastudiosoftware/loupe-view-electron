@@ -75,6 +75,23 @@ header {
   padding: 0 12px;
 }
 
+.image-title {
+  position: absolute;
+  left: 50%;
+  max-width: min(50%, 640px);
+  overflow: hidden;
+  color: #d7d9df;
+  font-size: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.image-title[hidden] {
+  display: none;
+}
+
 .screen-content ::slotted(*) {
   -webkit-app-region: no-drag;
 }
