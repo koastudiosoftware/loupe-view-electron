@@ -125,6 +125,19 @@ class ImageStatusBar extends HTMLElement {
     this.fullscreenButton = this.shadowRoot.querySelector(
       '[data-action="fullscreen"]',
     );
+    this.currentZoom = Number(this.zoomSlider.value);
+    this.handleZoomStep = (event) => {
+      const zoom = Math.max(
+        Number(this.zoomSlider.min),
+        Math.min(
+          Number(this.zoomSlider.max),
+          this.currentZoom + event.detail.delta,
+        ),
+      );
+      if (zoom !== this.currentZoom) {
+        this.updateZoom(String(zoom));
+      }
+    };
     this.handleKeydown = this.handleKeydown.bind(this);
 
     this.shadowRoot.addEventListener("click", (event) => {
@@ -168,6 +181,7 @@ class ImageStatusBar extends HTMLElement {
 
   connectedCallback() {
     document.addEventListener("keydown", this.handleKeydown);
+    document.addEventListener("zoom-step", this.handleZoomStep);
     this.removeFullscreenListener = window.windowControls.onFullscreenChange(
       (isFullScreen) => this.updateFullscreenState(isFullScreen),
     );
@@ -175,6 +189,7 @@ class ImageStatusBar extends HTMLElement {
 
   disconnectedCallback() {
     document.removeEventListener("keydown", this.handleKeydown);
+    document.removeEventListener("zoom-step", this.handleZoomStep);
     this.removeFullscreenListener?.();
   }
 
@@ -198,6 +213,7 @@ class ImageStatusBar extends HTMLElement {
 
   updateZoom(value) {
     this.zoomSlider.value = value;
+    this.currentZoom = Number(this.zoomSlider.value);
     this.zoomLabel.textContent = `${value}%`;
     this.zoomLabel.setAttribute("aria-label", `Current zoom ${value} percent`);
     this.zoomLabel.title = `Current zoom: ${value}%`;

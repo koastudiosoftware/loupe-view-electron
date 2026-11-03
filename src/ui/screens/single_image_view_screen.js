@@ -42,6 +42,34 @@ class SingleImageViewScreen extends HTMLElement {
     this.imageError = this.shadowRoot.querySelector(".image-error");
     this.imageRequestId = 0;
     this.imageLoadRequestId = 0;
+    this.handleZoomChange = (event) => {
+      this.imagePreview.style.setProperty(
+        "--image-zoom-scale",
+        String(event.detail.zoom / 100),
+      );
+    };
+    this.imageCanvas.addEventListener(
+      "wheel",
+      (event) => {
+        if (
+          this.imagePreview.hidden ||
+          !this.imageCanvas.classList.contains("has-image") ||
+          event.deltaY === 0
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        this.dispatchEvent(
+          new CustomEvent("zoom-step", {
+            bubbles: true,
+            composed: true,
+            detail: { delta: event.deltaY < 0 ? 10 : -10 },
+          }),
+        );
+      },
+      { passive: false },
+    );
     this.imagePreview.addEventListener("error", () => {
       if (this.imageLoadRequestId === this.imageRequestId) {
         this.imagePreview.hidden = true;
@@ -52,6 +80,14 @@ class SingleImageViewScreen extends HTMLElement {
     this.shadowRoot
       .querySelector(".close-button")
       .addEventListener("click", () => this.setFileInfoPanelOpen(false));
+  }
+
+  connectedCallback() {
+    document.addEventListener("zoom-change", this.handleZoomChange);
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener("zoom-change", this.handleZoomChange);
   }
 
   async setImage(imagePath) {
