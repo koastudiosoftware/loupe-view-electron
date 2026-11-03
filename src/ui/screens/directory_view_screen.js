@@ -80,6 +80,7 @@ class DirectoryViewScreen extends HTMLElement {
     this.handleSettingsChanged = (event) => {
       this.settingsChangeVersion += 1;
       this.fileTypeSettings = event.detail;
+      this.updateThumbnailDisplaySize();
       const thumbnailSettingChanged = [
         "cache-thumbnails",
         "thumbnail-size",
@@ -161,6 +162,7 @@ class DirectoryViewScreen extends HTMLElement {
 
       this.fileTypeSettings = settings;
       this.previousFileTypeSettings = settings;
+      this.updateThumbnailDisplaySize();
       this.fileGridError.hidden = true;
       this.renderFileGrid();
     } catch (error) {
@@ -284,6 +286,23 @@ class DirectoryViewScreen extends HTMLElement {
       gridItem.append(preview, label);
       this.fileGrid.append(gridItem);
       this.loadThumbnail(file, preview, gridItem, renderVersion);
+    }
+  }
+
+  updateThumbnailDisplaySize() {
+    const thumbnailSizes = {
+      small: 128,
+      medium: 256,
+      large: 512,
+      "extra-large": 1024,
+    };
+    const thumbnailSize =
+      thumbnailSizes[this.fileTypeSettings?.["thumbnail-size"]];
+    if (thumbnailSize) {
+      this.fileGrid.style.setProperty(
+        "--thumbnail-display-size",
+        `${thumbnailSize / 2}px`,
+      );
     }
   }
 
