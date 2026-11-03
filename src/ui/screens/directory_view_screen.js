@@ -136,6 +136,21 @@ class DirectoryViewScreen extends HTMLElement {
         this.selectEntry(this.fileGrid, item);
       }
     });
+    this.fileGrid.addEventListener("dblclick", (event) => {
+      const item = event.target.closest(".file-grid-item");
+      if (!item) {
+        return;
+      }
+
+      this.selectEntry(this.fileGrid, item);
+      this.dispatchEvent(
+        new CustomEvent("image-open", {
+          bubbles: true,
+          composed: true,
+          detail: { path: item.dataset.path },
+        }),
+      );
+    });
     this.configureResizer(
       this.shadowRoot.querySelector(".vertical-divider"),
       "columns",
@@ -293,6 +308,7 @@ class DirectoryViewScreen extends HTMLElement {
       gridItem.type = "button";
       gridItem.setAttribute("aria-pressed", "false");
       gridItem.title = file.name;
+      gridItem.dataset.path = file.path;
       const preview = document.createElement("img");
       preview.className = "file-grid-preview";
       preview.alt = "";

@@ -45,3 +45,10 @@ document.addEventListener("file-info-open", () => {
     .querySelector("single-image-view-screen")
     .setFileInfoPanelOpen(true);
 });
+
+document.addEventListener("image-open", (event) => {
+  const activeScreen = showScreen("single-image-view");
+  activeScreen
+    .querySelector("single-image-view-screen")
+    .setImage(event.detail.path);
+});

@@ -327,6 +327,7 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
     rootPath: path.parse(directoryPath).root,
     directories: entries
       .filter((entry) => entry.isDirectory())
+      .filter((entry) => entry.name.toLowerCase() !== "$recycle.bin")
       .map((entry) => ({
         name: entry.name,
         path: path.join(directoryPath, entry.name),
@@ -353,6 +354,20 @@ ipcMain.handle("thumbnail-cache:choose-directory", async (event) => {
     properties: ["openDirectory"],
   });
   return canceled ? null : filePaths[0];
+});
+
+ipcMain.handle("image:get-url", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Image path must be an absolute path.");
+  }
+
+  const imagePath = path.resolve(requestedPath);
+  const fileStat = await fs.stat(imagePath);
+  if (!fileStat.isFile()) {
+    throw new Error("The requested image is not a file.");
+  }
+
+  return pathToFileURL(imagePath).href;
 });
 
 ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {

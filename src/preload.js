@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("windowControls", {
   toggleFullscreen: () => ipcRenderer.send("window:toggle-fullscreen"),
   listDirectories: (directoryPath) =>
     ipcRenderer.invoke("directory:list", directoryPath),
+  getImageUrl: (imagePath) => ipcRenderer.invoke("image:get-url", imagePath),
   getThumbnail: (imagePath) => ipcRenderer.invoke("thumbnail:get", imagePath),
   chooseThumbnailCacheDirectory: () =>
     ipcRenderer.invoke("thumbnail-cache:choose-directory"),

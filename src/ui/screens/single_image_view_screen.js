@@ -26,7 +26,9 @@ template.innerHTML = `
   <main id="image-canvas">
     <div class="mark" aria-hidden="true">⌕</div>
     <h1>Loupe View</h1>
-    <p>Your image workspace is ready.</p>
+    <p class="welcome-message">Your image workspace is ready.</p>
+    <img class="image-preview" alt="" hidden />
+    <p class="image-error" role="alert" hidden></p>
   </main>
 `;
 
@@ -35,9 +37,48 @@ class SingleImageViewScreen extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" }).append(template.content.cloneNode(true));
     this.fileInfoPanel = this.shadowRoot.querySelector(".file-info-panel");
+    this.imageCanvas = this.shadowRoot.querySelector("#image-canvas");
+    this.imagePreview = this.shadowRoot.querySelector(".image-preview");
+    this.imageError = this.shadowRoot.querySelector(".image-error");
+    this.imageRequestId = 0;
+    this.imageLoadRequestId = 0;
+    this.imagePreview.addEventListener("error", () => {
+      if (this.imageLoadRequestId === this.imageRequestId) {
+        this.imagePreview.hidden = true;
+        this.imageError.textContent = "Unable to display this image.";
+        this.imageError.hidden = false;
+      }
+    });
     this.shadowRoot
       .querySelector(".close-button")
       .addEventListener("click", () => this.setFileInfoPanelOpen(false));
+  }
+
+  async setImage(imagePath) {
+    const requestId = ++this.imageRequestId;
+    this.imageError.hidden = true;
+    try {
+      const imageUrl = await window.windowControls.getImageUrl(imagePath);
+      if (requestId !== this.imageRequestId) {
+        return;
+      }
+
+      this.imageLoadRequestId = requestId;
+      this.imagePreview.src = imageUrl;
+      this.imagePreview.alt = imagePath.split(/[\\/]/).pop();
+      this.imagePreview.hidden = false;
+      this.imageCanvas.classList.add("has-image");
+    } catch (error) {
+      if (requestId !== this.imageRequestId) {
+        return;
+      }
+
+      console.error(`Unable to open image "${imagePath}":`, error);
+      this.imageCanvas.classList.add("has-image");
+      this.imageError.textContent =
+        `Unable to open image: ${error.message ?? String(error)}`;
+      this.imageError.hidden = false;
+    }
   }
 
   toggleFileInfoPanel() {
