@@ -46,6 +46,10 @@ header {
   cursor: pointer;
 }
 
+.toolbar-actions button[hidden] {
+  display: none;
+}
+
 .toolbar-actions button:hover {
   background: #30333b;
   color: #f3f4f6;

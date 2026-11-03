@@ -22,7 +22,7 @@ template.innerHTML = `
           <circle cx="18" cy="11.5" r="1" />
         </svg>
       </button>
-      <button type="button" aria-label="Delete" title="Delete">
+      <button data-setting="enable-file-deletes" type="button" aria-label="Delete" title="Delete" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"
@@ -63,6 +63,14 @@ class SingleImageViewerTitleBar extends HTMLElement {
     this.maximizeButton = this.shadowRoot.querySelector(
       '[data-action="maximize"]',
     );
+    this.deleteButton = this.shadowRoot.querySelector(
+      '[data-setting="enable-file-deletes"]',
+    );
+    this.settingsChangeVersion = 0;
+    this.handleSettingsChanged = (event) => {
+      this.settingsChangeVersion += 1;
+      this.updateDeleteButton(event.detail);
+    };
     this.handleMaximizedChange = this.handleMaximizedChange.bind(this);
 
     this.shadowRoot.addEventListener("click", (event) => {
@@ -90,13 +98,35 @@ class SingleImageViewerTitleBar extends HTMLElement {
   }
 
   connectedCallback() {
+    document.addEventListener("settings-changed", this.handleSettingsChanged);
+    this.loadDeleteSetting();
     this.removeMaximizedListener = window.windowControls.onMaximizedChange(
       this.handleMaximizedChange,
     );
   }
 
   disconnectedCallback() {
+    document.removeEventListener(
+      "settings-changed",
+      this.handleSettingsChanged,
+    );
     this.removeMaximizedListener?.();
+  }
+
+  async loadDeleteSetting() {
+    const requestVersion = this.settingsChangeVersion;
+    try {
+      const settings = await window.windowControls.loadSettings();
+      if (requestVersion === this.settingsChangeVersion) {
+        this.updateDeleteButton(settings);
+      }
+    } catch (error) {
+      console.error("Unable to load delete-button setting:", error);
+    }
+  }
+
+  updateDeleteButton(settings) {
+    this.deleteButton.hidden = settings?.["enable-file-deletes"] !== true;
   }
 
   handleMaximizedChange(isMaximized) {
