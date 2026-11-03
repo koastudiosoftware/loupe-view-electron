@@ -2,6 +2,18 @@ const template = document.createElement("template");
 const stylesUrl = new URL("./directory_view_screen.css", import.meta.url).href;
 const scrollbarStylesUrl = new URL("../common/scrollbar.css", import.meta.url)
   .href;
+const fileTypeSettingIds = {
+  ".jpg": "file-type-jpg",
+  ".jpeg": "file-type-jpeg",
+  ".png": "file-type-png",
+  ".gif": "file-type-gif",
+  ".bmp": "file-type-bmp",
+  ".tif": "file-type-tif",
+  ".tiff": "file-type-tiff",
+  ".webp": "file-type-webp",
+  ".heic": "file-type-heic",
+  ".avif": "file-type-avif",
+};
 
 template.innerHTML = `
   <link rel="stylesheet" href="${stylesUrl}" />
@@ -40,6 +52,7 @@ template.innerHTML = `
     ></div>
     <section class="directory-panel panel-main themed-scrollbar" id="directory-main-panel">
       <div class="file-grid" role="group" aria-label="Files in current directory"></div>
+      <p class="directory-error file-grid-error" role="status">Loading file type settings…</p>
     </section>
   </div>
   <directory-view-status-bar></directory-view-status-bar>
@@ -53,12 +66,23 @@ class DirectoryViewScreen extends HTMLElement {
     this.directoryList = this.shadowRoot.querySelector(".directory-list");
     this.fileList = this.shadowRoot.querySelector(".file-list");
     this.fileGrid = this.shadowRoot.querySelector(".file-grid");
+    this.fileGridError = this.shadowRoot.querySelector(".file-grid-error");
     this.directoryPathLabel = this.shadowRoot.querySelector(".directory-path");
     this.directoryError = this.shadowRoot.querySelector(".directory-error");
     this.currentPath = null;
     this.parentPath = null;
     this.rootPath = null;
+    this.files = [];
+    this.fileTypeSettings = null;
+    this.settingsChangeVersion = 0;
     this.loadRequestId = 0;
+    this.handleSettingsChanged = (event) => {
+      this.settingsChangeVersion += 1;
+      this.fileTypeSettings = event.detail;
+      this.fileGridError.hidden = true;
+      this.renderFileGrid();
+    };
+    document.addEventListener("settings-changed", this.handleSettingsChanged);
     this.directoryList.addEventListener("click", (event) => {
       const entry = event.target.closest(".directory-entry");
       if (!entry || entry.disabled) {
@@ -105,8 +129,34 @@ class DirectoryViewScreen extends HTMLElement {
   }
 
   connectedCallback() {
+    if (!this.settingsLoadPromise) {
+      this.settingsLoadPromise = this.loadFileTypeSettings();
+    }
+
     if (!this.currentPath) {
       this.loadDirectory("C:\\");
+    }
+  }
+
+  async loadFileTypeSettings() {
+    const requestVersion = this.settingsChangeVersion;
+    try {
+      const settings = await window.windowControls.loadSettings();
+      if (requestVersion !== this.settingsChangeVersion) {
+        return;
+      }
+
+      this.fileTypeSettings = settings;
+      this.fileGridError.hidden = true;
+      this.renderFileGrid();
+    } catch (error) {
+      console.error("Unable to load file type settings:", error);
+      if (requestVersion === this.settingsChangeVersion) {
+        this.fileGridError.textContent =
+          "Unable to load file type settings; the file grid is unavailable.";
+        this.fileGridError.hidden = false;
+        this.renderFileGrid();
+      }
     }
   }
 
@@ -127,9 +177,10 @@ class DirectoryViewScreen extends HTMLElement {
       this.currentPath = listing.path;
       this.parentPath = listing.parentPath;
       this.rootPath = listing.rootPath;
+      this.files = listing.files;
       this.directoryPathLabel.textContent = listing.path;
       this.renderDirectories(listing.directories);
-      this.renderFiles(listing.files);
+      this.renderFiles();
     } catch (error) {
       if (requestId !== this.loadRequestId) {
         return;
@@ -139,6 +190,7 @@ class DirectoryViewScreen extends HTMLElement {
       this.directoryPathLabel.textContent = directoryPath;
       this.directoryError.textContent = `Unable to load directories: ${error.message}`;
       this.directoryError.hidden = false;
+      this.files = [];
       this.fileList.replaceChildren();
       this.fileGrid.replaceChildren();
     }
@@ -169,11 +221,10 @@ class DirectoryViewScreen extends HTMLElement {
     }
   }
 
-  renderFiles(files) {
+  renderFiles() {
     this.fileList.replaceChildren();
-    this.fileGrid.replaceChildren();
 
-    for (const file of files) {
+    for (const file of this.files) {
       const entry = document.createElement("button");
       entry.className = "file-entry";
       entry.type = "button";
@@ -181,7 +232,28 @@ class DirectoryViewScreen extends HTMLElement {
       entry.setAttribute("aria-selected", "false");
       entry.textContent = file.name;
       this.fileList.append(entry);
+    }
 
+    this.renderFileGrid();
+  }
+
+  renderFileGrid() {
+    const files = this.files.filter((file) => {
+      if (!this.fileTypeSettings) {
+        return false;
+      }
+
+      const extensionIndex = file.name.lastIndexOf(".");
+      if (extensionIndex <= 0) {
+        return false;
+      }
+      const extension = file.name.slice(extensionIndex).toLowerCase();
+      const settingId = fileTypeSettingIds[extension];
+      return settingId ? this.fileTypeSettings[settingId] : false;
+    });
+    this.fileGrid.replaceChildren();
+
+    for (const file of files) {
       const gridItem = document.createElement("button");
       gridItem.className = "file-grid-item";
       gridItem.type = "button";

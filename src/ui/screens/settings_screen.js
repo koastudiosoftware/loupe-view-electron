@@ -8,7 +8,7 @@ template.innerHTML = `
   <link rel="stylesheet" href="${scrollbarStylesUrl}" />
   <main>
     <header class="heading">
-      <button class="back-button" type="button" aria-label="Back to image viewer" title="Back to image viewer">
+      <button class="back-button" type="button" aria-label="Back" title="Back">
         <span class="back-icon" aria-hidden="true"></span>
       </button>
       <div>
@@ -370,10 +370,9 @@ class SettingsScreen extends HTMLElement {
       .querySelector(".back-button")
       .addEventListener("click", () => {
         this.dispatchEvent(
-          new CustomEvent("screen-navigate", {
+          new CustomEvent("settings-back", {
             bubbles: true,
             composed: true,
-            detail: { screen: "single-image-view" },
           }),
         );
       });
@@ -446,6 +445,13 @@ class SettingsScreen extends HTMLElement {
       await window.windowControls.saveSettings(settings);
       if (requestId === this.settingsSaveRequestId) {
         this.showSettingsStorageError("");
+        this.dispatchEvent(
+          new CustomEvent("settings-changed", {
+            bubbles: true,
+            composed: true,
+            detail: settings,
+          }),
+        );
       }
     } catch (error) {
       if (requestId === this.settingsSaveRequestId) {

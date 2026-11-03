@@ -11,6 +11,11 @@ const screens = new Map(
     screen,
   ]),
 );
+const initialScreen = [...screens.values()].find(
+  (screen) => !screen.hidden && screen.dataset.screen !== "settings",
+);
+let lastNonSettingsScreen = initialScreen?.dataset.screen ?? "single-image-view";
+
 const showScreen = (screenName) => {
   const activeScreen = screens.get(screenName);
   if (!activeScreen) {
@@ -20,11 +25,18 @@ const showScreen = (screenName) => {
   screens.forEach((screen) => {
     screen.hidden = screen !== activeScreen;
   });
+  if (screenName !== "settings") {
+    lastNonSettingsScreen = screenName;
+  }
   return activeScreen;
 };
 
 document.addEventListener("screen-navigate", (event) => {
   showScreen(event.detail?.screen);
+});
+
+document.addEventListener("settings-back", () => {
+  showScreen(lastNonSettingsScreen);
 });
 
 document.addEventListener("file-info-open", () => {
