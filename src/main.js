@@ -2,6 +2,61 @@ const path = require("node:path");
 const fs = require("node:fs/promises");
 const { app, BrowserWindow, ipcMain } = require("electron");
 
+const defaultSettings = {
+  "cache-thumbnails": true,
+  "thumbnail-size": "medium",
+  "remember-window-size": true,
+  "remember-window-position": true,
+  "enable-file-deletes": true,
+  "directory-to-open": "last-visited",
+  "default-directory-path": "C:\\Users\\Public\\Pictures",
+  "allow-image-enlargement": true,
+  "auto-rotate-exif": true,
+  "show-hidden-files": false,
+  "show-parent-folder": true,
+  "case-sensitive-sort": false,
+  "natural-sort-order": true,
+};
+const settingsPath = () => path.join(app.getPath("userData"), "settings.json");
+let settingsWriteQueue = Promise.resolve();
+
+function normalizeSettings(settings) {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    throw new TypeError("Settings must be an object.");
+  }
+
+  const normalized = { ...defaultSettings };
+  for (const [key, defaultValue] of Object.entries(defaultSettings)) {
+    if (!Object.prototype.hasOwnProperty.call(settings, key)) {
+      continue;
+    }
+
+    const value = settings[key];
+    if (typeof defaultValue === "boolean" && typeof value !== "boolean") {
+      throw new TypeError(`Invalid value for setting "${key}".`);
+    }
+    if (typeof defaultValue === "string" && typeof value !== "string") {
+      throw new TypeError(`Invalid value for setting "${key}".`);
+    }
+    if (
+      key === "thumbnail-size" &&
+      !["small", "medium", "large", "extra-large"].includes(value)
+    ) {
+      throw new TypeError(`Invalid value for setting "${key}".`);
+    }
+    if (
+      key === "directory-to-open" &&
+      !["last-visited", "default-path"].includes(value)
+    ) {
+      throw new TypeError(`Invalid value for setting "${key}".`);
+    }
+
+    normalized[key] = value;
+  }
+
+  return normalized;
+}
+
 function createWindow() {
   const window = new BrowserWindow({
     width: 1200,
@@ -87,6 +142,37 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
         path: path.join(directoryPath, entry.name),
       })),
   };
+});
+
+ipcMain.handle("settings:load", async () => {
+  try {
+    const contents = await fs.readFile(settingsPath(), "utf8");
+    return normalizeSettings(JSON.parse(contents));
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return { ...defaultSettings };
+    }
+
+    throw error;
+  }
+});
+
+ipcMain.handle("settings:save", async (_event, settings) => {
+  const normalized = normalizeSettings(settings);
+  const save = settingsWriteQueue.then(async () => {
+    const targetPath = settingsPath();
+    const temporaryPath = `${targetPath}.tmp`;
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await fs.writeFile(
+      temporaryPath,
+      `${JSON.stringify(normalized, null, 2)}\n`,
+      { encoding: "utf8" },
+    );
+    await fs.rename(temporaryPath, targetPath);
+  });
+  settingsWriteQueue = save.catch(() => {});
+  await save;
+  return normalized;
 });
 
 app.whenReady().then(() => {

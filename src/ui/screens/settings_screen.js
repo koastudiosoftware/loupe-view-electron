@@ -16,6 +16,7 @@ template.innerHTML = `
         <p>Browse application preferences by category.</p>
       </div>
     </header>
+    <p class="settings-storage-error" role="alert" hidden></p>
     <div class="settings-layout">
       <nav class="category-list" aria-label="Settings categories">
         <button
@@ -285,6 +286,12 @@ class SettingsScreen extends HTMLElement {
       ...this.shadowRoot.querySelectorAll(".settings-panel"),
     ];
     this.directorySelect = this.shadowRoot.querySelector("#directory-to-open");
+    this.settingsControls = [
+      ...this.shadowRoot.querySelectorAll("input[id], select[id]"),
+    ];
+    this.settingsStorageError = this.shadowRoot.querySelector(
+      ".settings-storage-error",
+    );
     this.defaultDirectoryFields = this.shadowRoot.querySelector(
       "#default-directory-fields",
     );
@@ -325,8 +332,7 @@ class SettingsScreen extends HTMLElement {
     });
 
     this.directorySelect.addEventListener("change", () => {
-      this.defaultDirectoryFields.hidden =
-        this.directorySelect.value !== "default-path";
+      this.updateDefaultDirectoryFields();
     });
 
     this.shadowRoot
@@ -340,6 +346,75 @@ class SettingsScreen extends HTMLElement {
           }),
         );
       });
+  }
+
+  connectedCallback() {
+    if (!this.settingsLoadPromise) {
+      this.settingsLoadPromise = this.loadSettings();
+    }
+  }
+
+  async loadSettings() {
+    this.settingsControls.forEach((control) => {
+      control.disabled = true;
+    });
+
+    try {
+      const settings = await window.windowControls.loadSettings();
+      this.settingsControls.forEach((control) => {
+        if (control.type === "checkbox") {
+          control.checked = settings[control.id];
+        } else {
+          control.value = settings[control.id];
+        }
+        control.disabled = false;
+        this.addSettingsSaveListener(control);
+      });
+      this.updateDefaultDirectoryFields();
+    } catch (error) {
+      this.showSettingsStorageError(
+        `Unable to load settings: ${error.message ?? String(error)}`,
+      );
+    }
+  }
+
+  addSettingsSaveListener(control) {
+    const eventName = control.type === "text" ? "input" : "change";
+    control.addEventListener(eventName, () => this.saveSettings());
+  }
+
+  async saveSettings() {
+    const requestId = (this.settingsSaveRequestId ?? 0) + 1;
+    this.settingsSaveRequestId = requestId;
+    const settings = Object.fromEntries(
+      this.settingsControls.map((control) => [
+        control.id,
+        control.type === "checkbox" ? control.checked : control.value,
+      ]),
+    );
+
+    try {
+      await window.windowControls.saveSettings(settings);
+      if (requestId === this.settingsSaveRequestId) {
+        this.showSettingsStorageError("");
+      }
+    } catch (error) {
+      if (requestId === this.settingsSaveRequestId) {
+        this.showSettingsStorageError(
+          `Unable to save settings: ${error.message ?? String(error)}`,
+        );
+      }
+    }
+  }
+
+  showSettingsStorageError(message) {
+    this.settingsStorageError.textContent = message;
+    this.settingsStorageError.hidden = !message;
+  }
+
+  updateDefaultDirectoryFields() {
+    this.defaultDirectoryFields.hidden =
+      this.directorySelect.value !== "default-path";
   }
 
   selectCategory(category) {

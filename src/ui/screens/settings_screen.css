@@ -72,6 +72,12 @@ p {
   font-size: 14px;
 }
 
+.settings-storage-error {
+  margin: 0 0 16px;
+  color: #fca5a5;
+  font-size: 13px;
+}
+
 .settings-layout {
   display: grid;
   min-height: 320px;
