@@ -1,8 +1,17 @@
 const path = require("node:path");
 const fs = require("node:fs/promises");
+const { createHash, randomUUID } = require("node:crypto");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
-const { app, BrowserWindow, ipcMain, screen } = require("electron");
+const { pathToFileURL } = require("node:url");
+const {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeImage,
+  screen,
+} = require("electron");
 
 const execFileAsync = promisify(execFile);
 const imageFileExtensions = [
@@ -190,6 +199,22 @@ function normalizeSettings(settings) {
     normalized[key] = value;
   }
 
+  const cacheDirectory = settings["thumbnail-cache-directory"];
+  if (cacheDirectory === undefined) {
+    normalized["thumbnail-cache-directory"] = path.join(
+      app.getPath("pictures"), "LoupeView", "ThumbnailCache",
+    );
+  } else if (
+    typeof cacheDirectory !== "string" ||
+    !path.isAbsolute(cacheDirectory.trim())
+  ) {
+    throw new TypeError("Thumbnail cache directory must be an absolute path.");
+  } else {
+    normalized["thumbnail-cache-directory"] = path.resolve(
+      cacheDirectory.trim(),
+    );
+  }
+
   return normalized;
 }
 
@@ -312,6 +337,132 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
         name: entry.name,
         path: path.join(directoryPath, entry.name),
       })),
+  };
+});
+
+ipcMain.handle("thumbnail-cache:choose-directory", async (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (!window) {
+    throw new Error("Unable to open the thumbnail cache directory picker.");
+  }
+
+  const settings = await readSettings();
+  const { canceled, filePaths } = await dialog.showOpenDialog(window, {
+    title: "Choose Thumbnail Cache Directory",
+    defaultPath: settings["thumbnail-cache-directory"],
+    properties: ["openDirectory"],
+  });
+  return canceled ? null : filePaths[0];
+});
+
+ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Image path must be an absolute path.");
+  }
+
+  const imagePath = path.resolve(requestedPath);
+  const settings = await readSettings();
+  const extension = path.extname(imagePath).toLowerCase();
+  const settingId = {
+    ".jpg": "file-type-jpg",
+    ".jpeg": "file-type-jpeg",
+    ".png": "file-type-png",
+    ".gif": "file-type-gif",
+    ".bmp": "file-type-bmp",
+    ".tif": "file-type-tif",
+    ".tiff": "file-type-tiff",
+    ".webp": "file-type-webp",
+    ".heic": "file-type-heic",
+    ".avif": "file-type-avif",
+  }[extension];
+  if (!settingId || !settings[settingId]) {
+    throw new Error(`Image type "${extension || "unknown"}" is not enabled.`);
+  }
+
+  const targetSize = {
+    small: 128,
+    medium: 256,
+    large: 512,
+    "extra-large": 1024,
+  }[settings["thumbnail-size"]];
+  const fileStat = await fs.stat(imagePath);
+  if (!fileStat.isFile()) {
+    throw new Error("The requested image is not a file.");
+  }
+
+  const image = nativeImage.createFromPath(imagePath);
+  if (image.isEmpty()) {
+    throw new Error("Electron could not decode this image.");
+  }
+
+  const imageSize = image.getSize();
+  if (imageSize.width <= targetSize && imageSize.height <= targetSize) {
+    return {
+      url: pathToFileURL(imagePath).href,
+      isOriginal: true,
+    };
+  }
+
+  const cacheDirectory = settings["thumbnail-cache-directory"];
+  const resizeScale =
+    targetSize / Math.max(imageSize.width, imageSize.height);
+  const thumbnailSize = {
+    width: Math.max(1, Math.round(imageSize.width * resizeScale)),
+    height: Math.max(1, Math.round(imageSize.height * resizeScale)),
+  };
+  const cacheKey = createHash("sha256")
+    .update(
+      `${imagePath.toLowerCase()}\0${fileStat.size}\0${fileStat.mtimeMs}\0${thumbnailSize.width}x${thumbnailSize.height}`,
+    )
+    .digest("hex");
+  const cachePath = path.join(cacheDirectory, `${cacheKey}.png`);
+
+  if (settings["cache-thumbnails"]) {
+    let cachedBuffer;
+    try {
+      cachedBuffer = await fs.readFile(cachePath);
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+    }
+
+    if (cachedBuffer) {
+      try {
+        if (!nativeImage.createFromBuffer(cachedBuffer).isEmpty()) {
+          return {
+            url: `data:image/png;base64,${cachedBuffer.toString("base64")}`,
+            isOriginal: false,
+          };
+        }
+      } catch {
+        // A corrupt cache entry is discarded and regenerated below.
+      }
+      await fs.unlink(cachePath).catch((error) => {
+        if (error.code !== "ENOENT") {
+          throw error;
+        }
+      });
+    }
+  }
+
+  const thumbnail = image.resize({
+    width: thumbnailSize.width,
+    height: thumbnailSize.height,
+    quality: "good",
+  });
+  const thumbnailBuffer = thumbnail.toPNG();
+
+  if (settings["cache-thumbnails"]) {
+    await fs.mkdir(cacheDirectory, { recursive: true });
+    const temporaryPath = `${cachePath}.${randomUUID()}.tmp`;
+    await fs.writeFile(temporaryPath, thumbnailBuffer);
+    await fs.rename(temporaryPath, cachePath);
+  }
+
+  return {
+    url: `data:image/png;base64,${thumbnailBuffer.toString("base64")}`,
+    isOriginal: false,
   };
 });
 

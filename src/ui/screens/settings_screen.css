@@ -206,13 +206,35 @@ p {
   flex-direction: column;
 }
 
-.directory-path {
-  display: block;
+.cache-directory-field {
+  width: 100%;
+}
+
+.cache-directory-picker {
+  display: flex;
+  width: 100%;
+  gap: 8px;
   margin-top: 8px;
+}
+
+.directory-path-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #3b3e48;
+  border-radius: 4px;
+  background: #22242b;
   color: #b6bac5;
   font-family: Consolas, monospace;
   font-size: 11px;
-  overflow-wrap: anywhere;
+}
+
+.cache-directory-picker .secondary-button {
+  flex: 0 0 auto;
 }
 
 .directory-actions {

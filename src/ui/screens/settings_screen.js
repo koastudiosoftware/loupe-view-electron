@@ -68,7 +68,7 @@ template.innerHTML = `
               <label class="setting-row" for="thumbnail-size">
                 <span>
                   <span class="setting-label">Thumbnail size</span>
-                  <span class="setting-description">Choose the size used for cached previews.</span>
+                  <span class="setting-description">Choose the size used for generated previews.</span>
                 </span>
                 <select id="thumbnail-size">
                   <option value="small">Small (128 px)</option>
@@ -78,19 +78,33 @@ template.innerHTML = `
                 </select>
               </label>
               <div class="setting-row cache-directory-row">
-                <div>
+                <div class="cache-directory-field">
                   <span class="setting-label">Thumbnail cache directory</span>
                   <span class="setting-description">Location used to store cached thumbnails.</span>
-                  <code class="directory-path">C:&#92;Users&#92;Public&#92;Pictures&#92;LoupeView&#92;ThumbnailCache</code>
+                  <div class="cache-directory-picker">
+                    <input
+                      class="directory-path-input"
+                      id="thumbnail-cache-directory"
+                      type="text"
+                      aria-label="Thumbnail cache directory"
+                    />
+                    <button
+                      class="secondary-button"
+                      id="browse-thumbnail-cache-directory"
+                      type="button"
+                    >
+                      Browse…
+                    </button>
+                  </div>
                 </div>
                 <div class="directory-actions">
-                  <button class="secondary-button" type="button" disabled title="Available when thumbnail caching is implemented">
+                  <button class="secondary-button" type="button" disabled title="Cache management is not available yet">
                     Open in File Explorer
                   </button>
-                  <button class="secondary-button" type="button" disabled title="Available when thumbnail caching is implemented">
+                  <button class="secondary-button" type="button" disabled title="Cache management is not available yet">
                     Delete all cached thumbnails
                   </button>
-                  <button class="secondary-button" type="button" disabled title="Available when thumbnail caching is implemented">
+                  <button class="secondary-button" type="button" disabled title="Cache management is not available yet">
                     Delete orphaned thumbnails
                   </button>
                 </div>
@@ -317,6 +331,12 @@ class SettingsScreen extends HTMLElement {
       ...this.shadowRoot.querySelectorAll(".settings-panel"),
     ];
     this.directorySelect = this.shadowRoot.querySelector("#directory-to-open");
+    this.thumbnailCacheDirectoryInput = this.shadowRoot.querySelector(
+      "#thumbnail-cache-directory",
+    );
+    this.thumbnailCacheDirectoryBrowseButton = this.shadowRoot.querySelector(
+      "#browse-thumbnail-cache-directory",
+    );
     this.settingsControls = [
       ...this.shadowRoot.querySelectorAll("input[id], select[id]"),
     ];
@@ -366,6 +386,11 @@ class SettingsScreen extends HTMLElement {
       this.updateDefaultDirectoryFields();
     });
 
+    this.thumbnailCacheDirectoryBrowseButton.addEventListener(
+      "click",
+      () => this.browseThumbnailCacheDirectory(),
+    );
+
     this.shadowRoot
       .querySelector(".back-button")
       .addEventListener("click", () => {
@@ -412,6 +437,24 @@ class SettingsScreen extends HTMLElement {
   addSettingsSaveListener(control) {
     const eventName = control.type === "text" ? "input" : "change";
     control.addEventListener(eventName, () => this.saveSettings());
+  }
+
+  async browseThumbnailCacheDirectory() {
+    this.thumbnailCacheDirectoryBrowseButton.disabled = true;
+    try {
+      const selectedPath =
+        await window.windowControls.chooseThumbnailCacheDirectory();
+      if (selectedPath) {
+        this.thumbnailCacheDirectoryInput.value = selectedPath;
+        await this.saveSettings();
+      }
+    } catch (error) {
+      this.showSettingsStorageError(
+        `Unable to choose thumbnail cache directory: ${error.message ?? String(error)}`,
+      );
+    } finally {
+      this.thumbnailCacheDirectoryBrowseButton.disabled = false;
+    }
   }
 
   async loadFileTypeDescriptions() {

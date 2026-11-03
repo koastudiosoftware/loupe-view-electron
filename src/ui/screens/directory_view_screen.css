@@ -146,7 +146,8 @@
 .file-grid-item {
   display: flex;
   min-width: 0;
-  min-height: 72px;
+  min-height: 128px;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 10px;
@@ -159,6 +160,32 @@
   text-align: center;
   overflow-wrap: anywhere;
   cursor: pointer;
+}
+
+.file-grid-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 80px;
+  flex: 0 1 auto;
+  object-fit: contain;
+}
+
+.file-grid-preview[hidden] {
+  display: none;
+}
+
+.file-grid-label {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: 8px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.file-grid-item.original-image .file-grid-preview {
+  image-rendering: auto;
 }
 
 .file-grid-item:hover {

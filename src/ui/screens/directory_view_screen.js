@@ -75,12 +75,25 @@ class DirectoryViewScreen extends HTMLElement {
     this.files = [];
     this.fileTypeSettings = null;
     this.settingsChangeVersion = 0;
+    this.fileGridRenderVersion = 0;
     this.loadRequestId = 0;
     this.handleSettingsChanged = (event) => {
       this.settingsChangeVersion += 1;
       this.fileTypeSettings = event.detail;
-      this.fileGridError.hidden = true;
-      this.renderFileGrid();
+      const thumbnailSettingChanged = [
+        "cache-thumbnails",
+        "thumbnail-size",
+        "thumbnail-cache-directory",
+        ...Object.values(fileTypeSettingIds),
+      ].some(
+        (key) =>
+          this.previousFileTypeSettings?.[key] !== this.fileTypeSettings[key],
+      );
+      this.previousFileTypeSettings = this.fileTypeSettings;
+      if (thumbnailSettingChanged) {
+        this.fileGridError.hidden = true;
+        this.renderFileGrid();
+      }
     };
     document.addEventListener("settings-changed", this.handleSettingsChanged);
     this.directoryList.addEventListener("click", (event) => {
@@ -147,6 +160,7 @@ class DirectoryViewScreen extends HTMLElement {
       }
 
       this.fileTypeSettings = settings;
+      this.previousFileTypeSettings = settings;
       this.fileGridError.hidden = true;
       this.renderFileGrid();
     } catch (error) {
@@ -238,6 +252,7 @@ class DirectoryViewScreen extends HTMLElement {
   }
 
   renderFileGrid() {
+    const renderVersion = ++this.fileGridRenderVersion;
     const files = this.files.filter((file) => {
       if (!this.fileTypeSettings) {
         return false;
@@ -259,8 +274,33 @@ class DirectoryViewScreen extends HTMLElement {
       gridItem.type = "button";
       gridItem.setAttribute("aria-pressed", "false");
       gridItem.title = file.name;
-      gridItem.textContent = file.name;
+      const preview = document.createElement("img");
+      preview.className = "file-grid-preview";
+      preview.alt = "";
+      preview.hidden = true;
+      const label = document.createElement("span");
+      label.className = "file-grid-label";
+      label.textContent = file.name;
+      gridItem.append(preview, label);
       this.fileGrid.append(gridItem);
+      this.loadThumbnail(file, preview, gridItem, renderVersion);
+    }
+  }
+
+  async loadThumbnail(file, preview, gridItem, renderVersion) {
+    try {
+      const thumbnail = await window.windowControls.getThumbnail(file.path);
+      if (renderVersion !== this.fileGridRenderVersion) {
+        return;
+      }
+      preview.src = thumbnail.url;
+      preview.hidden = false;
+      gridItem.classList.toggle("original-image", thumbnail.isOriginal);
+    } catch (error) {
+      console.error(`Unable to load thumbnail for "${file.path}":`, error);
+      if (renderVersion === this.fileGridRenderVersion) {
+        gridItem.title = `${file.name}\nThumbnail unavailable: ${error.message ?? String(error)}`;
+      }
     }
   }
 
