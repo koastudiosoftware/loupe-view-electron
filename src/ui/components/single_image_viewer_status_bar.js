@@ -138,6 +138,7 @@ class ImageStatusBar extends HTMLElement {
         this.updateZoom(String(zoom));
       }
     };
+    this.handleZoomReset = () => this.updateZoom("100");
     this.handleKeydown = this.handleKeydown.bind(this);
 
     this.shadowRoot.addEventListener("click", (event) => {
@@ -182,6 +183,7 @@ class ImageStatusBar extends HTMLElement {
   connectedCallback() {
     document.addEventListener("keydown", this.handleKeydown);
     document.addEventListener("zoom-step", this.handleZoomStep);
+    document.addEventListener("zoom-reset", this.handleZoomReset);
     this.removeFullscreenListener = window.windowControls.onFullscreenChange(
       (isFullScreen) => this.updateFullscreenState(isFullScreen),
     );
@@ -190,6 +192,7 @@ class ImageStatusBar extends HTMLElement {
   disconnectedCallback() {
     document.removeEventListener("keydown", this.handleKeydown);
     document.removeEventListener("zoom-step", this.handleZoomStep);
+    document.removeEventListener("zoom-reset", this.handleZoomReset);
     this.removeFullscreenListener?.();
   }
 

@@ -8,6 +8,7 @@
 }
 
 main {
+  position: relative;
   display: grid;
   min-width: 0;
   height: 100%;
@@ -15,6 +16,43 @@ main {
   flex: 1;
   place-content: center;
   padding: 48px;
+}
+
+.canvas-back-button {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #3b3e48;
+  border-radius: 6px;
+  background: rgb(25 27 33 / 88%);
+  color: #d7d9df;
+  cursor: pointer;
+}
+
+.canvas-back-button:hover {
+  background: #30333b;
+  color: #f3f4f6;
+}
+
+.canvas-back-button:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}
+
+.back-icon {
+  width: 20px;
+  height: 20px;
+  background-color: currentColor;
+  mask: url("../../../assets/material-icons_arrow_back.svg") center / contain
+    no-repeat;
+  -webkit-mask: url("../../../assets/material-icons_arrow_back.svg") center /
+    contain no-repeat;
 }
 
 main.has-image {
@@ -25,6 +63,15 @@ main.has-image {
   justify-content: center;
   overflow: hidden;
   padding: 0;
+  touch-action: none;
+}
+
+main.has-image.pannable {
+  cursor: grab;
+}
+
+main.has-image.panning {
+  cursor: grabbing;
 }
 
 .image-preview {
@@ -32,7 +79,9 @@ main.has-image {
   height: 100%;
   flex: 0 0 100%;
   object-fit: contain;
-  transform: scale(var(--image-zoom-scale, 1));
+  transform:
+    translate3d(var(--image-pan-x, 0px), var(--image-pan-y, 0px), 0)
+    scale(var(--image-zoom-scale, 1));
   transform-origin: center;
 }
 
