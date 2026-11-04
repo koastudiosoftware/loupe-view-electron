@@ -5,6 +5,16 @@ contextBridge.exposeInMainWorld("windowControls", {
   minimize: () => ipcRenderer.send("window:minimize"),
   toggleMaximize: () => ipcRenderer.send("window:toggle-maximize"),
   toggleFullscreen: () => ipcRenderer.send("window:toggle-fullscreen"),
+  restoreWindowDefaults: () =>
+    ipcRenderer.invoke("window:restore-defaults"),
+  onWindowDefaultsRestored: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on("window:defaults-restored", listener);
+    return () => ipcRenderer.removeListener("window:defaults-restored", listener);
+  },
+  getPanelLayout: () => ipcRenderer.invoke("directory:get-panel-layout"),
+  setPanelLayout: (layout) =>
+    ipcRenderer.invoke("directory:set-panel-layout", layout),
   listDirectories: (directoryPath) =>
     ipcRenderer.invoke("directory:list", directoryPath),
   getLastVisitedDirectory: () =>

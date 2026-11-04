@@ -78,6 +78,13 @@ class DirectoryViewScreen extends HTMLElement {
     this.settingsChangeVersion = 0;
     this.fileGridRenderVersion = 0;
     this.loadRequestId = 0;
+    this.panelSizeRatios = null;
+    this.panelSizesChanged = false;
+    this.handleWindowDefaultsRestored = () => this.restoreDefaultPanelSizes();
+    this.removeWindowDefaultsListener =
+      window.windowControls.onWindowDefaultsRestored(
+        this.handleWindowDefaultsRestored,
+      );
     this.handleSettingsChanged = (event) => {
       this.settingsChangeVersion += 1;
       this.fileTypeSettings = event.detail;
@@ -177,10 +184,67 @@ class DirectoryViewScreen extends HTMLElement {
   }
 
   connectedCallback() {
+    if (!this.panelLayoutLoadPromise) {
+      this.panelLayoutLoadPromise = this.loadPanelLayout();
+    }
     if (!this.settingsLoadPromise) {
       this.settingsLoadPromise = this.loadFileTypeSettings();
     }
+  }
 
+  async loadPanelLayout() {
+    try {
+      const layout = await window.windowControls.getPanelLayout();
+      if (!layout || this.panelSizesChanged) {
+        return;
+      }
+
+      this.panelSizeRatios = {
+        columns: layout.columnRatio,
+        rows: layout.rowRatio,
+      };
+      this.applySavedPanelSizes();
+    } catch (error) {
+      console.error("Unable to load saved panel sizes:", error);
+    }
+  }
+
+  applySavedPanelSizes() {
+    if (!this.panelSizeRatios) {
+      return;
+    }
+    this.setPanelRatio("columns", this.panelSizeRatios.columns);
+    this.setPanelRatio("rows", this.panelSizeRatios.rows);
+  }
+
+  setPanelRatio(axis, ratio) {
+    const templateProperty =
+      axis === "columns" ? "gridTemplateColumns" : "gridTemplateRows";
+    const minimumFirstSize = axis === "columns" ? 300 : 120;
+    const minimumSecondSize = axis === "columns" ? 150 : 120;
+    const percent = ratio * 100;
+    const gutter = ratio * 6;
+    this.layout.style[templateProperty] =
+      `minmax(${minimumFirstSize}px, calc(${percent}% - ${gutter}px)) 6px minmax(${minimumSecondSize}px, 1fr)`;
+  }
+
+  restoreDefaultPanelSizes() {
+    this.panelSizesChanged = true;
+    this.panelSizeRatios = null;
+    this.layout.style.gridTemplateColumns = "";
+    this.layout.style.gridTemplateRows = "";
+    this.shadowRoot
+      .querySelector(".vertical-divider")
+      .setAttribute("aria-valuenow", "300");
+    requestAnimationFrame(() => {
+      const topPanel = this.shadowRoot.querySelector(".panel-top");
+      this.shadowRoot
+        .querySelector(".horizontal-divider")
+        .setAttribute(
+          "aria-valuenow",
+          String(Math.round(topPanel.getBoundingClientRect().height)),
+        );
+    });
   }
 
   async loadFileTypeSettings() {
@@ -414,8 +478,6 @@ class DirectoryViewScreen extends HTMLElement {
     minimumSecondSize = minimumFirstSize,
     maximumFirstSize = Number.POSITIVE_INFINITY,
   ) {
-    const templateProperty =
-      axis === "columns" ? "gridTemplateColumns" : "gridTemplateRows";
     let startPointer = 0;
     let startFirstSize = 0;
     let startSecondSize = 0;
@@ -448,9 +510,46 @@ class DirectoryViewScreen extends HTMLElement {
     };
 
     const applySizes = (firstSize, secondSize) => {
-      this.layout.style[templateProperty] =
-        `${firstSize}px 6px ${secondSize}px`;
+      const totalSize = firstSize + secondSize;
+      const ratio = firstSize / totalSize;
+      this.panelSizesChanged = true;
+      this.panelSizeRatios ??= {};
+      this.panelSizeRatios[axis] = ratio;
+      this.setPanelRatio(axis, ratio);
       resizer.setAttribute("aria-valuenow", String(Math.round(firstSize)));
+    };
+
+    const persistSizes = () => {
+      if (!this.panelSizeRatios) {
+        return;
+      }
+      const getCurrentRatio = (ratioAxis) => {
+        const first = this.shadowRoot.querySelector(".panel-top");
+        const second = this.shadowRoot.querySelector(
+          ratioAxis === "columns" ? ".panel-main" : ".panel-bottom",
+        );
+        const firstSize =
+          ratioAxis === "columns"
+            ? first.getBoundingClientRect().width
+            : first.getBoundingClientRect().height;
+        const secondSize =
+          ratioAxis === "columns"
+            ? second.getBoundingClientRect().width
+            : second.getBoundingClientRect().height;
+        return firstSize / (firstSize + secondSize);
+      };
+      window.windowControls
+        .setPanelLayout({
+          columnRatio:
+            this.panelSizeRatios.columns ?? getCurrentRatio("columns"),
+          rowRatio: this.panelSizeRatios.rows ?? getCurrentRatio("rows"),
+        })
+        .catch((error) => {
+          console.error("Unable to save panel sizes:", error);
+          this.directoryError.textContent =
+            `Unable to save panel sizes: ${error.message ?? String(error)}`;
+          this.directoryError.hidden = false;
+        });
     };
 
     resizer.addEventListener("pointerdown", (event) => {
@@ -477,6 +576,7 @@ class DirectoryViewScreen extends HTMLElement {
       if (resizer.hasPointerCapture(event.pointerId)) {
         resizer.releasePointerCapture(event.pointerId);
       }
+      persistSizes();
     };
     resizer.addEventListener("pointerup", stopResizing);
     resizer.addEventListener("pointercancel", stopResizing);
@@ -495,6 +595,7 @@ class DirectoryViewScreen extends HTMLElement {
 
       const delta = event.key === positiveKey ? 10 : -10;
       applyDelta(delta);
+      persistSizes();
     });
 
     const applyDelta = (delta) => {

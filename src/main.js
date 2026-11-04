@@ -61,10 +61,14 @@ function getDefaultSettings() {
 const settingsPath = () => path.join(app.getPath("userData"), "settings.json");
 const lastVisitedDirectoryPath = () =>
   path.join(app.getPath("userData"), "last-visited-directory.json");
+const panelLayoutPath = () =>
+  path.join(app.getPath("userData"), "panel-layout.json");
 const windowStatePath = () =>
   path.join(app.getPath("userData"), "window-state.json");
 let settingsWriteQueue = Promise.resolve();
 let windowStateWriteQueue = Promise.resolve();
+let panelLayoutWriteQueue = Promise.resolve();
+const resetBoundsByWindow = new WeakMap();
 
 async function readSettings() {
   try {
@@ -152,6 +156,45 @@ async function writeWindowState(bounds, isMaximized) {
     await fs.rename(temporaryPath, targetPath);
   });
   windowStateWriteQueue = save.catch(() => {});
+  await save;
+}
+
+async function readPanelLayout() {
+  try {
+    const layout = JSON.parse(await fs.readFile(panelLayoutPath(), "utf8"));
+    if (
+      !layout ||
+      typeof layout.columnRatio !== "number" ||
+      typeof layout.rowRatio !== "number" ||
+      layout.columnRatio <= 0 ||
+      layout.columnRatio >= 1 ||
+      layout.rowRatio <= 0 ||
+      layout.rowRatio >= 1
+    ) {
+      throw new TypeError("Saved panel layout is invalid.");
+    }
+    return layout;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return null;
+    }
+
+    console.error("Unable to restore saved panel layout:", error);
+    return null;
+  }
+}
+
+async function writePanelLayout(layout) {
+  const save = panelLayoutWriteQueue.then(async () => {
+    const targetPath = panelLayoutPath();
+    const temporaryPath = `${targetPath}.tmp`;
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await fs.writeFile(temporaryPath, `${JSON.stringify(layout)}\n`, {
+      encoding: "utf8",
+    });
+    await fs.rename(temporaryPath, targetPath);
+  });
+  panelLayoutWriteQueue = save.catch(() => {});
   await save;
 }
 
@@ -305,7 +348,24 @@ async function createWindow() {
   });
 
   let boundsSaveTimer;
+  const isAtResetBounds = () => {
+    const resetBounds = resetBoundsByWindow.get(window);
+    if (!resetBounds || window.isMaximized() || window.isFullScreen()) {
+      return false;
+    }
+    const bounds = window.getNormalBounds();
+    return (
+      bounds.x === resetBounds.x &&
+      bounds.y === resetBounds.y &&
+      bounds.width === resetBounds.width &&
+      bounds.height === resetBounds.height
+    );
+  };
   const saveBounds = () => {
+    if (isAtResetBounds()) {
+      return;
+    }
+    resetBoundsByWindow.delete(window);
     clearTimeout(boundsSaveTimer);
     boundsSaveTimer = setTimeout(() => {
       writeWindowState(window.getNormalBounds(), window.isMaximized()).catch(
@@ -335,11 +395,13 @@ async function createWindow() {
   window.on("resize", saveBounds);
   window.on("close", () => {
     clearTimeout(boundsSaveTimer);
-    writeWindowState(window.getNormalBounds(), window.isMaximized()).catch(
-      (error) => {
-        console.error("Unable to persist window bounds:", error);
-      },
-    );
+    if (!isAtResetBounds()) {
+      writeWindowState(window.getNormalBounds(), window.isMaximized()).catch(
+        (error) => {
+          console.error("Unable to persist window bounds:", error);
+        },
+      );
+    }
   });
 
   await window.loadFile(path.join(__dirname, "index.html"));
@@ -374,6 +436,53 @@ ipcMain.on("window:toggle-fullscreen", (event) => {
 
 ipcMain.on("window:close", (event) => {
   BrowserWindow.fromWebContents(event.sender)?.close();
+});
+
+ipcMain.handle("window:restore-defaults", async (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (!window) {
+    throw new Error("Unable to restore default window and panel sizes.");
+  }
+
+  await panelLayoutWriteQueue;
+  const targetPanelLayout = panelLayoutPath();
+  await fs.rm(targetPanelLayout, { force: true });
+
+  if (window.isFullScreen()) {
+    window.setFullScreen(false);
+  }
+  if (window.isMaximized()) {
+    window.unmaximize();
+  }
+  window.setSize(1200, 800);
+  window.center();
+  const bounds = window.getNormalBounds();
+  resetBoundsByWindow.set(window, bounds);
+  await writeWindowState(bounds, false);
+  window.webContents.send("window:defaults-restored");
+});
+
+ipcMain.handle("directory:get-panel-layout", async () =>
+  readPanelLayout(),
+);
+
+ipcMain.handle("directory:set-panel-layout", async (_event, layout) => {
+  if (
+    !layout ||
+    typeof layout !== "object" ||
+    !Number.isFinite(layout.columnRatio) ||
+    !Number.isFinite(layout.rowRatio) ||
+    layout.columnRatio <= 0 ||
+    layout.columnRatio >= 1 ||
+    layout.rowRatio <= 0 ||
+    layout.rowRatio >= 1
+  ) {
+    throw new TypeError("Panel layout ratios must be between zero and one.");
+  }
+  await writePanelLayout({
+    columnRatio: layout.columnRatio,
+    rowRatio: layout.rowRatio,
+  });
 });
 
 ipcMain.handle("directory:list", async (_event, requestedPath) => {

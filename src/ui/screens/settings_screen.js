@@ -121,6 +121,15 @@ template.innerHTML = `
                 <span class="setting-label">Remember window position</span>
                 <input id="remember-window-position" type="checkbox" checked />
               </label>
+              <div class="setting-row">
+                <span>
+                  <span class="setting-label">Restore Defaults</span>
+                  <span class="setting-description">Reset panel sizes and restore the default window size and location.</span>
+                </span>
+                <button class="secondary-button" id="restore-window-defaults" type="button">
+                  Restore Defaults
+                </button>
+              </div>
             </section>
 
             <section class="setting-group" aria-labelledby="navigation-settings-title">
@@ -366,6 +375,9 @@ class SettingsScreen extends HTMLElement {
     this.defaultDirectoryBrowseButton = this.shadowRoot.querySelector(
       "#browse-default-directory",
     );
+    this.restoreWindowDefaultsButton = this.shadowRoot.querySelector(
+      "#restore-window-defaults",
+    );
     this.settingsControls = [
       ...this.shadowRoot.querySelectorAll("input[id], select[id]"),
     ];
@@ -421,6 +433,9 @@ class SettingsScreen extends HTMLElement {
     );
     this.defaultDirectoryBrowseButton.addEventListener("click", () =>
       this.browseDefaultDirectory(),
+    );
+    this.restoreWindowDefaultsButton.addEventListener("click", () =>
+      this.restoreWindowDefaults(),
     );
 
     this.shadowRoot
@@ -504,6 +519,20 @@ class SettingsScreen extends HTMLElement {
       );
     } finally {
       this.defaultDirectoryBrowseButton.disabled = false;
+    }
+  }
+
+  async restoreWindowDefaults() {
+    this.restoreWindowDefaultsButton.disabled = true;
+    try {
+      await window.windowControls.restoreWindowDefaults();
+      this.showSettingsStorageError("");
+    } catch (error) {
+      this.showSettingsStorageError(
+        `Unable to restore window defaults: ${error.message ?? String(error)}`,
+      );
+    } finally {
+      this.restoreWindowDefaultsButton.disabled = false;
     }
   }
 
