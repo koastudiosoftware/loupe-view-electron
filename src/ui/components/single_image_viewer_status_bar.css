@@ -127,6 +127,14 @@
   -webkit-mask: url("../../../assets/material-icons_fit_screen.svg") center / contain no-repeat;
 }
 
+.histogram-icon {
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  mask: url("../../../assets/fluentui-system-icons_data_histogram.svg") center / contain no-repeat;
+  -webkit-mask: url("../../../assets/fluentui-system-icons_data_histogram.svg") center / contain no-repeat;
+}
+
 .enter-fullscreen-icon {
   background-color: currentColor;
   mask: url("../../../assets/material-icons_fullscreen.svg") center / contain no-repeat;

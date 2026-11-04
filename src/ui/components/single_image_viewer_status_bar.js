@@ -52,6 +52,16 @@ template.innerHTML = `
           />
         </svg>
       </button>
+      <button
+        class="status-button"
+        data-action="histogram"
+        type="button"
+        aria-label="Show histogram"
+        aria-pressed="false"
+        title="Histogram"
+      >
+        <span class="histogram-icon" aria-hidden="true"></span>
+      </button>
       <span class="status-divider" aria-hidden="true"></span>
       <div class="image-metadata" aria-label="Image details">
         <div class="metadata-item">
@@ -138,6 +148,8 @@ class ImageStatusBar extends HTMLElement {
       this.updateImageMetadata(event.detail);
     this.handleFilmStripVisibility = (event) =>
       this.updateFilmStripButton(event.detail.isOpen);
+    this.handleHistogramVisibility = (event) =>
+      this.updateHistogramButton(event.detail.isOpen);
     this.currentZoom = Number(this.zoomSlider.value);
     this.handleZoomStep = (event) => {
       const zoom = Math.max(
@@ -178,6 +190,13 @@ class ImageStatusBar extends HTMLElement {
             composed: true,
           }),
         );
+      } else if (action === "histogram") {
+        this.dispatchEvent(
+          new CustomEvent("histogram-toggle", {
+            bubbles: true,
+            composed: true,
+          }),
+        );
       } else if (action === "preset") {
         const preset = event.target.closest("[data-zoom]");
         this.updateZoom(
@@ -199,6 +218,10 @@ class ImageStatusBar extends HTMLElement {
     document.addEventListener("image-open", this.handleImageOpen);
     document.addEventListener("image-metadata", this.handleImageMetadata);
     document.addEventListener(
+      "histogram-visibility",
+      this.handleHistogramVisibility,
+    );
+    document.addEventListener(
       "film-strip-visibility",
       this.handleFilmStripVisibility,
     );
@@ -213,6 +236,10 @@ class ImageStatusBar extends HTMLElement {
     document.removeEventListener("zoom-reset", this.handleZoomReset);
     document.removeEventListener("image-open", this.handleImageOpen);
     document.removeEventListener("image-metadata", this.handleImageMetadata);
+    document.removeEventListener(
+      "histogram-visibility",
+      this.handleHistogramVisibility,
+    );
     document.removeEventListener(
       "film-strip-visibility",
       this.handleFilmStripVisibility,
@@ -280,6 +307,16 @@ class ImageStatusBar extends HTMLElement {
       isOpen ? "Hide film strip" : "Show film strip",
     );
     filmStripButton.title = isOpen ? "Hide film strip" : "Show film strip";
+  }
+
+  updateHistogramButton(isOpen) {
+    const button = this.shadowRoot.querySelector('[data-action="histogram"]');
+    button.setAttribute("aria-pressed", String(isOpen));
+    button.setAttribute(
+      "aria-label",
+      isOpen ? "Hide histogram" : "Show histogram",
+    );
+    button.title = isOpen ? "Hide histogram" : "Histogram";
   }
 
   formatFileSize(bytes) {

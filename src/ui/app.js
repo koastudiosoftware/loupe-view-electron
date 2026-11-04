@@ -1,5 +1,6 @@
 import "./components/single_image_viewer_title_bar.js";
 import "./components/single_image_viewer_status_bar.js";
+import "./components/image_histogram.js";
 import "./components/directory_view_status_bar.js";
 import "./screens/single_image_view_screen.js";
 import "./screens/directory_view_screen.js";

@@ -131,6 +131,7 @@ template.innerHTML = `
       <img class="image-preview" alt="" hidden />
       <p class="image-error" role="alert" hidden></p>
     </main>
+    <image-histogram hidden></image-histogram>
   </div>
   <aside class="film-strip" aria-label="Image film strip" hidden>
     <button class="film-strip-arrow" type="button" data-film-strip-direction="-1" aria-label="Previous image" title="Previous image">
@@ -188,6 +189,14 @@ class SingleImageViewScreen extends HTMLElement {
     this.imageCanvas = this.shadowRoot.querySelector("#image-canvas");
     this.imagePreview = this.shadowRoot.querySelector(".image-preview");
     this.imageError = this.shadowRoot.querySelector(".image-error");
+    this.histogram = this.shadowRoot.querySelector("image-histogram");
+    this.histogramOpen = false;
+    this.histogramRequestId = 0;
+    this.handleHistogramToggle = () =>
+      this.setHistogramOpen(!this.histogramOpen);
+    this.histogram.addEventListener("histogram-close", () =>
+      this.setHistogramOpen(false),
+    );
     this.filmStrip = this.shadowRoot.querySelector(".film-strip");
     this.filmStripTrack = this.shadowRoot.querySelector(".film-strip-track");
     this.filmStripViewport = this.shadowRoot.querySelector(
@@ -420,6 +429,7 @@ class SingleImageViewScreen extends HTMLElement {
     document.addEventListener("zoom-change", this.handleZoomChange);
     document.addEventListener("keydown", this.handlePanKeydown);
     document.addEventListener("film-strip-toggle", this.handleFilmStripToggle);
+    document.addEventListener("histogram-toggle", this.handleHistogramToggle);
     document.addEventListener("settings-changed", this.handleSettingsChanged);
     this.resizeObserver.observe(this.imageCanvas);
     this.resizeObserver.observe(this.filmStripViewport);
@@ -432,6 +442,10 @@ class SingleImageViewScreen extends HTMLElement {
     document.removeEventListener(
       "film-strip-toggle",
       this.handleFilmStripToggle,
+    );
+    document.removeEventListener(
+      "histogram-toggle",
+      this.handleHistogramToggle,
     );
     document.removeEventListener(
       "settings-changed",
@@ -466,6 +480,45 @@ class SingleImageViewScreen extends HTMLElement {
     this.updateFilmStripArrows();
     if (persist) {
       this.persistViewerFlyoutState();
+    }
+  }
+
+  setHistogramOpen(isOpen) {
+    this.histogramOpen = isOpen;
+    this.histogram.hidden = !isOpen;
+    this.dispatchEvent(
+      new CustomEvent("histogram-visibility", {
+        bubbles: true,
+        composed: true,
+        detail: { isOpen },
+      }),
+    );
+    if (isOpen) {
+      this.loadHistogram();
+    }
+  }
+
+  async loadHistogram() {
+    if (!this.currentImagePath) {
+      this.histogram.setError("Open an image to view its histogram.");
+      return;
+    }
+
+    const requestId = ++this.histogramRequestId;
+    const imagePath = this.currentImagePath;
+    this.histogram.setLoading();
+    try {
+      const data = await window.windowControls.getImageHistogram(imagePath);
+      if (requestId === this.histogramRequestId) {
+        this.histogram.setData(data);
+      }
+    } catch (error) {
+      if (requestId !== this.histogramRequestId) {
+        return;
+      }
+
+      console.error(`Unable to generate histogram for "${imagePath}":`, error);
+      this.histogram.setError("Unable to generate this image's histogram.");
     }
   }
 
@@ -768,6 +821,10 @@ class SingleImageViewScreen extends HTMLElement {
     const requestId = ++this.imageRequestId;
     const infoRequestId = ++this.infoRequestId;
     this.currentImagePath = imagePath;
+    this.histogramRequestId += 1;
+    if (this.histogramOpen) {
+      this.loadHistogram();
+    }
     this.updateFilmStripSelection(imagePath);
     this.loadFilmStrip(imagePath);
     this.renderInfoMessage("Loading image information…");

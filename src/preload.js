@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld("windowControls", {
     ipcRenderer.invoke("directory:set-last-visited", directoryPath),
   getImageUrl: (imagePath) => ipcRenderer.invoke("image:get-url", imagePath),
   getImageInfo: (imagePath) => ipcRenderer.invoke("image:get-info", imagePath),
+  getImageHistogram: (imagePath) =>
+    ipcRenderer.invoke("image:get-histogram", imagePath),
   openFolder: (folderPath) => ipcRenderer.invoke("folder:open", folderPath),
   getThumbnail: (imagePath) => ipcRenderer.invoke("thumbnail:get", imagePath),
   openThumbnailCacheDirectory: () =>

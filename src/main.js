@@ -779,6 +779,44 @@ ipcMain.handle("image:get-url", async (_event, requestedPath) => {
   return pathToFileURL(imagePath).href;
 });
 
+ipcMain.handle("image:get-histogram", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Image path must be an absolute path.");
+  }
+
+  const imagePath = path.resolve(requestedPath);
+  const fileStat = await fs.stat(imagePath);
+  if (!fileStat.isFile()) {
+    throw new Error("The requested image is not a file.");
+  }
+
+  const { data, info } = await sharp(imagePath)
+    .rotate()
+    .resize({
+      width: 512,
+      height: 512,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .toColourspace("srgb")
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const channels = {
+    red: new Array(256).fill(0),
+    green: new Array(256).fill(0),
+    blue: new Array(256).fill(0),
+  };
+  const channelNames = ["red", "green", "blue"];
+  for (let pixel = 0; pixel < info.width * info.height; pixel += 1) {
+    const offset = pixel * info.channels;
+    for (let channel = 0; channel < channelNames.length; channel += 1) {
+      channels[channelNames[channel]][data[offset + channel]] += 1;
+    }
+  }
+  return channels;
+});
+
 function makeExifValuesSerializable(value) {
   if (typeof value === "bigint") {
     return value.toString();
