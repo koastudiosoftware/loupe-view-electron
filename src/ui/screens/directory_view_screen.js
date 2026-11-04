@@ -112,6 +112,12 @@ class DirectoryViewScreen extends HTMLElement {
       }
 
       this.selectEntry(this.directoryList, entry);
+      if (
+        this.fileTypeSettings?.["directory-single-click-action"] === "open" &&
+        entry.dataset.path
+      ) {
+        this.loadDirectory(entry.dataset.path);
+      }
     });
     this.directoryList.addEventListener("dblclick", (event) => {
       const entry = event.target.closest(".directory-entry");
@@ -120,7 +126,10 @@ class DirectoryViewScreen extends HTMLElement {
       }
 
       const targetPath = entry.dataset.path;
-      if (targetPath) {
+      if (
+        targetPath &&
+        this.fileTypeSettings?.["directory-single-click-action"] !== "open"
+      ) {
         this.loadDirectory(targetPath);
       }
     });
@@ -128,12 +137,18 @@ class DirectoryViewScreen extends HTMLElement {
       const entry = event.target.closest(".file-entry");
       if (entry) {
         this.selectEntry(this.fileList, entry);
+        if (this.fileTypeSettings?.["file-single-click-action"] === "open") {
+          this.openImage(entry.dataset.path);
+        }
       }
     });
     this.fileGrid.addEventListener("click", (event) => {
       const item = event.target.closest(".file-grid-item");
       if (item) {
         this.selectEntry(this.fileGrid, item);
+        if (this.fileTypeSettings?.["file-single-click-action"] === "open") {
+          this.openImage(item.dataset.path);
+        }
       }
     });
     this.fileGrid.addEventListener("dblclick", (event) => {
@@ -143,13 +158,9 @@ class DirectoryViewScreen extends HTMLElement {
       }
 
       this.selectEntry(this.fileGrid, item);
-      this.dispatchEvent(
-        new CustomEvent("image-open", {
-          bubbles: true,
-          composed: true,
-          detail: { path: item.dataset.path },
-        }),
-      );
+      if (this.fileTypeSettings?.["file-single-click-action"] !== "open") {
+        this.openImage(item.dataset.path);
+      }
     });
     this.configureResizer(
       this.shadowRoot.querySelector(".vertical-divider"),
@@ -279,6 +290,7 @@ class DirectoryViewScreen extends HTMLElement {
       entry.setAttribute("role", "option");
       entry.setAttribute("aria-selected", "false");
       entry.textContent = file.name;
+      entry.dataset.path = file.path;
       this.fileList.append(entry);
     }
 
@@ -368,6 +380,19 @@ class DirectoryViewScreen extends HTMLElement {
       }
       entry.classList.toggle("selected", isSelected);
     }
+  }
+
+  openImage(imagePath) {
+    if (!imagePath) {
+      return;
+    }
+    this.dispatchEvent(
+      new CustomEvent("image-open", {
+        bubbles: true,
+        composed: true,
+        detail: { path: imagePath },
+      }),
+    );
   }
 
   configureResizer(

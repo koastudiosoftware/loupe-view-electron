@@ -35,6 +35,8 @@ const defaultSettings = {
   "remember-window-size": true,
   "remember-window-position": true,
   "enable-file-deletes": true,
+  "directory-single-click-action": "select",
+  "file-single-click-action": "select",
   "directory-to-open": "last-visited",
   "default-directory-path": "C:\\Users\\Public\\Pictures",
   "allow-image-enlargement": true,
@@ -195,6 +197,13 @@ function normalizeSettings(settings) {
     if (
       key === "directory-to-open" &&
       !["last-visited", "default-path"].includes(value)
+    ) {
+      throw new TypeError(`Invalid value for setting "${key}".`);
+    }
+    if (
+      (key === "directory-single-click-action" ||
+        key === "file-single-click-action") &&
+      !["open", "select"].includes(value)
     ) {
       throw new TypeError(`Invalid value for setting "${key}".`);
     }

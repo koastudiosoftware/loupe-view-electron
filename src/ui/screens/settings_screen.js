@@ -123,6 +123,30 @@ template.innerHTML = `
               </label>
             </section>
 
+            <section class="setting-group" aria-labelledby="navigation-settings-title">
+              <h3 id="navigation-settings-title">Navigation</h3>
+              <label class="setting-row" for="directory-single-click-action">
+                <span>
+                  <span class="setting-label">Directory Single Click Action</span>
+                  <span class="setting-description">Choose whether a single click opens or selects a directory.</span>
+                </span>
+                <select id="directory-single-click-action">
+                  <option value="open">Open</option>
+                  <option value="select" selected>Select</option>
+                </select>
+              </label>
+              <label class="setting-row" for="file-single-click-action">
+                <span>
+                  <span class="setting-label">File Single Click Action</span>
+                  <span class="setting-description">Choose whether a single click opens or selects an image.</span>
+                </span>
+                <select id="file-single-click-action">
+                  <option value="open">Open</option>
+                  <option value="select" selected>Select</option>
+                </select>
+              </label>
+            </section>
+
             <section class="setting-group" aria-labelledby="file-settings-title">
               <h3 id="file-settings-title">Files</h3>
               <label class="setting-row toggle-row" for="enable-file-deletes">
