@@ -546,16 +546,20 @@ ipcMain.handle("thumbnail-cache:choose-directory", async (event) => {
   return canceled ? null : filePaths[0];
 });
 
-ipcMain.handle("directory:choose-default", async (event) => {
+ipcMain.handle("directory:choose-default", async (event, requestedPath) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (!window) {
     throw new Error("Unable to open the default directory picker.");
   }
 
   const settings = await readSettings();
+  const defaultPath =
+    typeof requestedPath === "string" && path.isAbsolute(requestedPath)
+      ? path.resolve(requestedPath)
+      : settings["default-directory-path"];
   const { canceled, filePaths } = await dialog.showOpenDialog(window, {
     title: "Choose Default Directory",
-    defaultPath: settings["default-directory-path"],
+    defaultPath,
     properties: ["openDirectory"],
   });
   return canceled ? null : filePaths[0];

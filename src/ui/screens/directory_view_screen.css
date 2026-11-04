@@ -33,18 +33,67 @@
 }
 
 .directory-header {
-  padding-bottom: 10px;
+  padding: 8px;
   border-bottom: 1px solid #30333b;
 }
 
+.directory-path-picker {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+}
+
 .directory-path {
-  overflow: hidden;
-  padding: 0 16px;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
   margin: 0;
-  color: #969ba7;
+  border: 1px solid #3b3e48;
+  border-radius: 4px;
+  outline: none;
+  background: #111318;
+  color: #c5c8d0;
+  font: inherit;
   font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.directory-path:focus {
+  border-color: #858a97;
+}
+
+.directory-path.invalid,
+.directory-path.invalid:focus {
+  border-color: #f87171;
+}
+
+.directory-path-browse {
+  width: 32px;
+  height: 28px;
+  flex: 0 0 32px;
+  padding: 0 0 6px;
+  border: 1px solid #3b3e48;
+  border-radius: 4px;
+  background: #22242b;
+  color: #d7d9df;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.directory-path-browse:hover {
+  background: #30333b;
+}
+
+.directory-path-browse:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 1px;
+}
+
+.directory-path-browse:disabled {
+  color: #858a97;
+  cursor: wait;
 }
 
 .directory-list {

@@ -27,7 +27,8 @@ contextBridge.exposeInMainWorld("windowControls", {
   getThumbnail: (imagePath) => ipcRenderer.invoke("thumbnail:get", imagePath),
   chooseThumbnailCacheDirectory: () =>
     ipcRenderer.invoke("thumbnail-cache:choose-directory"),
-  chooseDefaultDirectory: () => ipcRenderer.invoke("directory:choose-default"),
+  chooseDefaultDirectory: (directoryPath) =>
+    ipcRenderer.invoke("directory:choose-default", directoryPath),
   getFileTypeDescriptions: () => ipcRenderer.invoke("file-types:descriptions"),
   loadSettings: () => ipcRenderer.invoke("settings:load"),
   saveSettings: (settings) => ipcRenderer.invoke("settings:save", settings),

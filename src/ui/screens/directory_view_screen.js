@@ -21,7 +21,21 @@ template.innerHTML = `
   <div class="directory-layout">
     <section class="directory-panel panel-top themed-scrollbar" id="directory-top-panel" aria-label="Directories">
       <header class="directory-header">
-        <p class="directory-path" aria-live="polite"></p>
+        <div class="directory-path-picker">
+          <input
+            class="directory-path"
+            type="text"
+            aria-label="Current directory path"
+            aria-live="polite"
+            spellcheck="false"
+          />
+          <button
+            class="directory-path-browse"
+            type="button"
+            aria-label="Browse for directory"
+            title="Browse for directory"
+          >…</button>
+        </div>
       </header>
       <div class="directory-list" role="listbox" aria-label="Directory listing"></div>
       <p class="directory-error" role="alert" hidden></p>
@@ -67,7 +81,7 @@ class DirectoryViewScreen extends HTMLElement {
     this.fileList = this.shadowRoot.querySelector(".file-list");
     this.fileGrid = this.shadowRoot.querySelector(".file-grid");
     this.fileGridError = this.shadowRoot.querySelector(".file-grid-error");
-    this.directoryPathLabel = this.shadowRoot.querySelector(".directory-path");
+    this.directoryPathInput = this.shadowRoot.querySelector(".directory-path");
     this.directoryError = this.shadowRoot.querySelector(".directory-error");
     this.currentPath = null;
     this.parentPath = null;
@@ -85,6 +99,24 @@ class DirectoryViewScreen extends HTMLElement {
       window.windowControls.onWindowDefaultsRestored(
         this.handleWindowDefaultsRestored,
       );
+    this.directoryPathInput.addEventListener("input", () => {
+      this.directoryPathInput.classList.remove("invalid");
+      this.directoryPathInput.removeAttribute("aria-invalid");
+    });
+    this.directoryPathInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+      const directoryPath = this.directoryPathInput.value.trim();
+      if (directoryPath) {
+        this.loadDirectory(directoryPath);
+      }
+    });
+    this.shadowRoot
+      .querySelector(".directory-path-browse")
+      .addEventListener("click", () => this.browseDirectory());
     this.handleSettingsChanged = (event) => {
       this.settingsChangeVersion += 1;
       this.fileTypeSettings = event.detail;
@@ -285,9 +317,6 @@ class DirectoryViewScreen extends HTMLElement {
     const requestId = ++this.loadRequestId;
     this.directoryError.hidden = true;
     this.directoryError.textContent = "";
-    this.directoryList.replaceChildren();
-    this.fileList.replaceChildren();
-    this.fileGrid.replaceChildren();
 
     try {
       const listing = await window.windowControls.listDirectories(directoryPath);
@@ -300,7 +329,9 @@ class DirectoryViewScreen extends HTMLElement {
       this.rootPath = listing.rootPath;
       this.directories = listing.directories;
       this.files = listing.files;
-      this.directoryPathLabel.textContent = listing.path;
+      this.directoryPathInput.value = listing.path;
+      this.directoryPathInput.classList.remove("invalid");
+      this.directoryPathInput.removeAttribute("aria-invalid");
       this.renderDirectories(this.directories);
       this.renderFiles();
       window.windowControls
@@ -316,14 +347,33 @@ class DirectoryViewScreen extends HTMLElement {
         return;
       }
 
-      this.currentPath = directoryPath;
-      this.directoryPathLabel.textContent = directoryPath;
+      this.directoryPathInput.value = directoryPath;
+      this.directoryPathInput.classList.add("invalid");
+      this.directoryPathInput.setAttribute("aria-invalid", "true");
       this.directoryError.textContent = `Unable to load directories: ${error.message}`;
       this.directoryError.hidden = false;
-      this.directories = [];
-      this.files = [];
-      this.fileList.replaceChildren();
-      this.fileGrid.replaceChildren();
+    }
+  }
+
+  async browseDirectory() {
+    const browseButton = this.shadowRoot.querySelector(
+      ".directory-path-browse",
+    );
+    browseButton.disabled = true;
+    try {
+      const selectedPath = await window.windowControls.chooseDefaultDirectory(
+        this.currentPath,
+      );
+      if (selectedPath) {
+        await this.loadDirectory(selectedPath);
+      }
+    } catch (error) {
+      console.error("Unable to browse for directory:", error);
+      this.directoryError.textContent =
+        `Unable to browse for directory: ${error.message ?? String(error)}`;
+      this.directoryError.hidden = false;
+    } finally {
+      browseButton.disabled = false;
     }
   }
 
