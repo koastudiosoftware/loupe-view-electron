@@ -257,6 +257,54 @@ p {
   overflow-wrap: anywhere;
 }
 
+.exif-info-row {
+  align-items: flex-start;
+}
+
+.exif-info-row dt {
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.exif-info-row dd {
+  flex: 0 1 50%;
+  max-width: 50%;
+  white-space: normal;
+}
+
+.file-detail-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.file-detail-row dd {
+  text-align: left;
+}
+
+.folder-location-link {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #a5b4fc;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.folder-location-link:hover,
+.folder-location-link:focus-visible {
+  color: #c7d2fe;
+}
+
+.folder-location-link:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}
+
 .info-message {
   margin: 0;
   color: #b6bac5;

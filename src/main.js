@@ -13,6 +13,7 @@ const {
   ipcMain,
   nativeImage,
   screen,
+  shell,
 } = require("electron");
 
 const execFileAsync = promisify(execFile);
@@ -468,6 +469,23 @@ ipcMain.handle("image:get-info", async (_event, requestedPath) => {
         ? (imageResult.reason?.message ?? String(imageResult.reason))
         : null,
   };
+});
+
+ipcMain.handle("folder:open", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Folder path must be an absolute path.");
+  }
+
+  const folderPath = path.resolve(requestedPath);
+  const folderStat = await fs.stat(folderPath);
+  if (!folderStat.isDirectory()) {
+    throw new Error("The requested path is not a folder.");
+  }
+
+  const error = await shell.openPath(folderPath);
+  if (error) {
+    throw new Error(`Unable to open folder: ${error}`);
+  }
 });
 
 ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
