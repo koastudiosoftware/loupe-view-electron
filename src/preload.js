@@ -34,6 +34,10 @@ contextBridge.exposeInMainWorld("windowControls", {
   getFileTypeDescriptions: () => ipcRenderer.invoke("file-types:descriptions"),
   loadSettings: () => ipcRenderer.invoke("settings:load"),
   saveSettings: (settings) => ipcRenderer.invoke("settings:save", settings),
+  loadViewerFlyoutState: () =>
+    ipcRenderer.invoke("viewer-flyout-state:load"),
+  saveViewerFlyoutState: (state) =>
+    ipcRenderer.invoke("viewer-flyout-state:save", state),
   onMaximizedChange: (callback) => {
     const listener = (_event, isMaximized) => callback(isMaximized);
     ipcRenderer.on("window:maximized", listener);

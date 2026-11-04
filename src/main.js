@@ -69,11 +69,14 @@ const lastVisitedDirectoryPath = () =>
   path.join(app.getPath("userData"), "last-visited-directory.json");
 const panelLayoutPath = () =>
   path.join(app.getPath("userData"), "panel-layout.json");
+const viewerFlyoutStatePath = () =>
+  path.join(app.getPath("userData"), "viewer-flyout-state.json");
 const windowStatePath = () =>
   path.join(app.getPath("userData"), "window-state.json");
 let settingsWriteQueue = Promise.resolve();
 let windowStateWriteQueue = Promise.resolve();
 let panelLayoutWriteQueue = Promise.resolve();
+let viewerFlyoutStateWriteQueue = Promise.resolve();
 const resetBoundsByWindow = new WeakMap();
 
 async function readSettings() {
@@ -201,6 +204,50 @@ async function writePanelLayout(layout) {
     await fs.rename(temporaryPath, targetPath);
   });
   panelLayoutWriteQueue = save.catch(() => {});
+  await save;
+}
+
+async function readViewerFlyoutState() {
+  try {
+    const state = JSON.parse(
+      await fs.readFile(viewerFlyoutStatePath(), "utf8"),
+    );
+    if (
+      !state ||
+      typeof state.fileInfoOpen !== "boolean" ||
+      typeof state.filmStripOpen !== "boolean"
+    ) {
+      throw new TypeError("Saved viewer flyout state is invalid.");
+    }
+    const fileInfoTab = state.fileInfoTab ?? "file-details";
+    if (!["file-details", "exif-details", "image-specs"].includes(fileInfoTab)) {
+      throw new TypeError("Saved File Info tab is invalid.");
+    }
+    return { ...state, fileInfoTab };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return {
+        fileInfoOpen: false,
+        filmStripOpen: false,
+        fileInfoTab: "file-details",
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function writeViewerFlyoutState(state) {
+  const save = viewerFlyoutStateWriteQueue.then(async () => {
+    const targetPath = viewerFlyoutStatePath();
+    const temporaryPath = `${targetPath}.tmp`;
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await fs.writeFile(temporaryPath, `${JSON.stringify(state)}\n`, {
+      encoding: "utf8",
+    });
+    await fs.rename(temporaryPath, targetPath);
+  });
+  viewerFlyoutStateWriteQueue = save.catch(() => {});
   await save;
 }
 
@@ -923,6 +970,31 @@ ipcMain.handle("settings:save", async (_event, settings) => {
   });
   settingsWriteQueue = save.catch(() => {});
   await save;
+  return normalized;
+});
+
+ipcMain.handle("viewer-flyout-state:load", async () =>
+  readViewerFlyoutState(),
+);
+
+ipcMain.handle("viewer-flyout-state:save", async (_event, state) => {
+  if (
+    !state ||
+    typeof state.fileInfoOpen !== "boolean" ||
+    typeof state.filmStripOpen !== "boolean" ||
+    !["file-details", "exif-details", "image-specs"].includes(
+      state.fileInfoTab,
+    )
+  ) {
+    throw new TypeError("Viewer flyout state is invalid.");
+  }
+
+  const normalized = {
+    fileInfoOpen: state.fileInfoOpen,
+    filmStripOpen: state.filmStripOpen,
+    fileInfoTab: state.fileInfoTab,
+  };
+  await writeViewerFlyoutState(normalized);
   return normalized;
 });
 

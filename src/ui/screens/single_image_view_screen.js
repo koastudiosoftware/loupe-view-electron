@@ -159,8 +159,11 @@ class SingleImageViewScreen extends HTMLElement {
     this.infoPanelsByTab = new Map(
       this.infoPanels.map((panel) => [panel.dataset.infoPanel, panel]),
     );
+    this.selectedInfoTab = "file-details";
     this.infoTabs.forEach((tab) => {
-      tab.addEventListener("click", () => this.showInfoTab(tab.dataset.infoTab));
+      tab.addEventListener("click", () =>
+        this.showInfoTab(tab.dataset.infoTab),
+      );
       tab.addEventListener("keydown", (event) => {
         const tabIndex = this.infoTabs.indexOf(tab);
         let nextIndex;
@@ -181,7 +184,7 @@ class SingleImageViewScreen extends HTMLElement {
         this.showInfoTab(this.infoTabs[nextIndex].dataset.infoTab);
       });
     });
-    this.showInfoTab("file-details");
+    this.showInfoTab("file-details", false);
     this.imageCanvas = this.shadowRoot.querySelector("#image-canvas");
     this.imagePreview = this.shadowRoot.querySelector(".image-preview");
     this.imageError = this.shadowRoot.querySelector(".image-error");
@@ -194,6 +197,8 @@ class SingleImageViewScreen extends HTMLElement {
       ...this.shadowRoot.querySelectorAll("[data-film-strip-direction]"),
     ];
     this.filmStripOpen = false;
+    this.viewerFlyoutStateReady = Promise.resolve();
+    this.applyingViewerFlyoutState = false;
     this.filmStripRequestId = 0;
     this.filmStripDirectoryPath = null;
     this.filmStripLoadingDirectoryPath = null;
@@ -411,6 +416,7 @@ class SingleImageViewScreen extends HTMLElement {
   }
 
   connectedCallback() {
+    this.viewerFlyoutStateReady = this.loadViewerFlyoutState();
     document.addEventListener("zoom-change", this.handleZoomChange);
     document.addEventListener("keydown", this.handlePanKeydown);
     document.addEventListener("film-strip-toggle", this.handleFilmStripToggle);
@@ -444,7 +450,7 @@ class SingleImageViewScreen extends HTMLElement {
     );
   }
 
-  setFilmStripOpen(isOpen) {
+  setFilmStripOpen(isOpen, persist = true) {
     this.filmStripOpen = isOpen;
     this.filmStrip.hidden = !isOpen;
     this.dispatchEvent(
@@ -458,6 +464,39 @@ class SingleImageViewScreen extends HTMLElement {
       requestAnimationFrame(() => this.centerCurrentFilmStripItem());
     }
     this.updateFilmStripArrows();
+    if (persist) {
+      this.persistViewerFlyoutState();
+    }
+  }
+
+  async loadViewerFlyoutState() {
+    try {
+      const state = await window.windowControls.loadViewerFlyoutState();
+      this.applyingViewerFlyoutState = true;
+      this.showInfoTab(state.fileInfoTab, false);
+      this.setFileInfoPanelOpen(state.fileInfoOpen, false);
+      this.setFilmStripOpen(state.filmStripOpen, false);
+    } catch (error) {
+      console.error("Unable to load viewer flyout state:", error);
+    } finally {
+      this.applyingViewerFlyoutState = false;
+    }
+  }
+
+  persistViewerFlyoutState() {
+    if (this.applyingViewerFlyoutState) {
+      return;
+    }
+
+    window.windowControls
+      .saveViewerFlyoutState({
+        fileInfoOpen: !this.fileInfoPanel.hidden,
+        filmStripOpen: this.filmStripOpen,
+        fileInfoTab: this.selectedInfoTab,
+      })
+      .catch((error) => {
+        console.error("Unable to save viewer flyout state:", error);
+      });
   }
 
   getFilmStripDirectoryPath(imagePath) {
@@ -725,6 +764,7 @@ class SingleImageViewScreen extends HTMLElement {
   }
 
   async setImage(imagePath) {
+    await this.viewerFlyoutStateReady;
     const requestId = ++this.imageRequestId;
     const infoRequestId = ++this.infoRequestId;
     this.currentImagePath = imagePath;
@@ -796,7 +836,12 @@ class SingleImageViewScreen extends HTMLElement {
     }
   }
 
-  showInfoTab(tabName) {
+  showInfoTab(tabName, persist = true) {
+    if (!this.infoPanelsByTab.has(tabName)) {
+      return;
+    }
+
+    this.selectedInfoTab = tabName;
     this.infoTabs.forEach((tab) => {
       const selected = tab.dataset.infoTab === tabName;
       tab.setAttribute("aria-selected", String(selected));
@@ -805,6 +850,9 @@ class SingleImageViewScreen extends HTMLElement {
     this.infoPanels.forEach((panel) => {
       panel.hidden = panel.dataset.infoPanel !== tabName;
     });
+    if (persist) {
+      this.persistViewerFlyoutState();
+    }
   }
 
   renderInfoMessage(message) {
@@ -1396,8 +1444,11 @@ class SingleImageViewScreen extends HTMLElement {
     this.setFileInfoPanelOpen(this.fileInfoPanel.hidden);
   }
 
-  setFileInfoPanelOpen(isOpen) {
+  setFileInfoPanelOpen(isOpen, persist = true) {
     this.fileInfoPanel.hidden = !isOpen;
+    if (persist) {
+      this.persistViewerFlyoutState();
+    }
   }
 }
 
