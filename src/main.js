@@ -360,9 +360,7 @@ function normalizeSettings(settings) {
 
   const cacheDirectory = settings["thumbnail-cache-directory"];
   if (cacheDirectory === undefined) {
-    normalized["thumbnail-cache-directory"] = path.join(
-      app.getPath("pictures"), "LoupeView", "ThumbnailCache",
-    );
+    normalized["thumbnail-cache-directory"] = path.join(app.getPath("userData"), "ThumbnailCache");
   } else if (
     typeof cacheDirectory !== "string" ||
     !path.isAbsolute(cacheDirectory.trim())
@@ -811,6 +809,7 @@ ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
     throw new Error("Electron could not decode this image.");
   }
 
+  const exifOrientation = await exifr.orientation(imagePath);
   const imageSize = image.getSize();
   if (imageSize.width <= targetSize && imageSize.height <= targetSize) {
     return {
@@ -826,9 +825,13 @@ ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
     width: Math.max(1, Math.round(imageSize.width * resizeScale)),
     height: Math.max(1, Math.round(imageSize.height * resizeScale)),
   };
+  const orientationCacheKey =
+    exifOrientation && exifOrientation !== 1
+      ? `\0exif-orientation-${exifOrientation}-v1`
+      : "";
   const cacheKey = createHash("sha256")
     .update(
-      `${imagePath.toLowerCase()}\0${fileStat.size}\0${fileStat.mtimeMs}\0${thumbnailSize.width}x${thumbnailSize.height}`,
+      `${imagePath.toLowerCase()}\0${fileStat.size}\0${fileStat.mtimeMs}\0${thumbnailSize.width}x${thumbnailSize.height}${orientationCacheKey}`,
     )
     .digest("hex");
   const cachePath = path.join(cacheDirectory, `${cacheKey}.png`);
@@ -862,12 +865,24 @@ ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
     }
   }
 
-  const thumbnail = image.resize({
-    width: thumbnailSize.width,
-    height: thumbnailSize.height,
-    quality: "good",
-  });
-  const thumbnailBuffer = thumbnail.toPNG();
+  const thumbnailBuffer =
+    exifOrientation && exifOrientation !== 1
+      ? await sharp(imagePath)
+          .rotate()
+          .resize({
+            width: targetSize,
+            height: targetSize,
+            fit: "inside",
+          })
+          .png()
+          .toBuffer()
+      : image
+          .resize({
+            width: thumbnailSize.width,
+            height: thumbnailSize.height,
+            quality: "good",
+          })
+          .toPNG();
 
   if (settings["cache-thumbnails"]) {
     await fs.mkdir(cacheDirectory, { recursive: true });
