@@ -85,7 +85,7 @@ async function readSettings() {
     return normalizeSettings(JSON.parse(contents));
   } catch (error) {
     if (error.code === "ENOENT") {
-      return getDefaultSettings();
+      return normalizeSettings(getDefaultSettings());
     }
 
     throw error;
@@ -632,6 +632,120 @@ ipcMain.handle("thumbnail-cache:choose-directory", async (event) => {
   return canceled ? null : filePaths[0];
 });
 
+ipcMain.handle("thumbnail-cache:open", async () => {
+  const settings = await readSettings();
+  const cacheDirectory = settings["thumbnail-cache-directory"];
+  await fs.mkdir(cacheDirectory, { recursive: true });
+  const error = await shell.openPath(cacheDirectory);
+  if (error) {
+    throw new Error(`Unable to open thumbnail cache directory: ${error}`);
+  }
+});
+
+ipcMain.handle("thumbnail-cache:delete-all", async () => {
+  const settings = await readSettings();
+  const cacheDirectory = settings["thumbnail-cache-directory"];
+  let entries;
+  try {
+    entries = await fs.readdir(cacheDirectory, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return { deletedCount: 0 };
+    }
+    throw error;
+  }
+
+  const cacheFilePattern =
+    /^[a-f0-9]{64}\.(?:png|json)(?:\.[a-f0-9-]+\.tmp)?$/i;
+  const cacheFiles = entries.filter(
+    (entry) => entry.isFile() && cacheFilePattern.test(entry.name),
+  );
+  await Promise.all(
+    cacheFiles.map((entry) =>
+      fs.unlink(path.join(cacheDirectory, entry.name)),
+    ),
+  );
+  return {
+    deletedCount: cacheFiles.filter((entry) => /\.png$/i.test(entry.name))
+      .length,
+  };
+});
+
+ipcMain.handle("thumbnail-cache:delete-orphaned", async () => {
+  const settings = await readSettings();
+  const cacheDirectory = settings["thumbnail-cache-directory"];
+  let entries;
+  try {
+    entries = await fs.readdir(cacheDirectory, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return { deletedCount: 0 };
+    }
+    throw error;
+  }
+
+  const metadataFiles = entries.filter(
+    (entry) => entry.isFile() && /^[a-f0-9]{64}\.json$/i.test(entry.name),
+  );
+  let deletedCount = 0;
+  for (const metadataFile of metadataFiles) {
+    const metadataPath = path.join(cacheDirectory, metadataFile.name);
+    const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+    if (
+      !metadata ||
+      typeof metadata.sourcePath !== "string" ||
+      !path.isAbsolute(metadata.sourcePath) ||
+      !Number.isFinite(metadata.sourceSize) ||
+      !Number.isFinite(metadata.sourceModifiedAt)
+    ) {
+      throw new TypeError(
+        `Thumbnail cache metadata "${metadataFile.name}" is invalid.`,
+      );
+    }
+
+    let sourceIsCurrent = false;
+    try {
+      const sourceStat = await fs.stat(metadata.sourcePath);
+      sourceIsCurrent =
+        sourceStat.isFile() &&
+        sourceStat.size === metadata.sourceSize &&
+        sourceStat.mtimeMs === metadata.sourceModifiedAt;
+    } catch (error) {
+      if (error.code !== "ENOENT" && error.code !== "ENOTDIR") {
+        throw error;
+      }
+    }
+    const cachePath = path.join(
+      cacheDirectory,
+      `${path.parse(metadataFile.name).name}.png`,
+    );
+    if (sourceIsCurrent) {
+      try {
+        await fs.access(cachePath);
+      } catch (error) {
+        if (error.code === "ENOENT") {
+          await fs.unlink(metadataPath);
+          continue;
+        }
+        throw error;
+      }
+      continue;
+    }
+
+    try {
+      await fs.unlink(cachePath);
+      deletedCount += 1;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+    }
+    await fs.unlink(metadataPath);
+  }
+
+  return { deletedCount };
+});
+
 ipcMain.handle("directory:choose-default", async (event, requestedPath) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (!window) {
@@ -763,6 +877,27 @@ ipcMain.handle("image:get-info", async (_event, requestedPath) => {
   };
 });
 
+async function writeThumbnailCacheMetadata(
+  cacheDirectory,
+  cacheKey,
+  imagePath,
+  fileStat,
+) {
+  const metadataPath = path.join(cacheDirectory, `${cacheKey}.json`);
+  const temporaryPath = `${metadataPath}.${randomUUID()}.tmp`;
+  await fs.mkdir(cacheDirectory, { recursive: true });
+  await fs.writeFile(
+    temporaryPath,
+    `${JSON.stringify({
+      sourcePath: path.resolve(imagePath),
+      sourceSize: fileStat.size,
+      sourceModifiedAt: fileStat.mtimeMs,
+    })}\n`,
+    { encoding: "utf8" },
+  );
+  await fs.rename(temporaryPath, metadataPath);
+}
+
 ipcMain.handle("folder:open", async (_event, requestedPath) => {
   if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
     throw new TypeError("Folder path must be an absolute path.");
@@ -849,6 +984,12 @@ ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
     if (cachedBuffer) {
       try {
         if (!nativeImage.createFromBuffer(cachedBuffer).isEmpty()) {
+          await writeThumbnailCacheMetadata(
+            cacheDirectory,
+            cacheKey,
+            imagePath,
+            fileStat,
+          );
           return {
             url: `data:image/png;base64,${cachedBuffer.toString("base64")}`,
             isOriginal: false,
@@ -862,6 +1003,13 @@ ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
           throw error;
         }
       });
+      await fs.unlink(path.join(cacheDirectory, `${cacheKey}.json`)).catch(
+        (error) => {
+          if (error.code !== "ENOENT") {
+            throw error;
+          }
+        },
+      );
     }
   }
 
@@ -889,6 +1037,12 @@ ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
     const temporaryPath = `${cachePath}.${randomUUID()}.tmp`;
     await fs.writeFile(temporaryPath, thumbnailBuffer);
     await fs.rename(temporaryPath, cachePath);
+    await writeThumbnailCacheMetadata(
+      cacheDirectory,
+      cacheKey,
+      imagePath,
+      fileStat,
+    );
   }
 
   return {

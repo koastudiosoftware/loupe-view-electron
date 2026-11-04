@@ -98,16 +98,20 @@ template.innerHTML = `
                   </div>
                 </div>
                 <div class="directory-actions">
-                  <button class="secondary-button" type="button" disabled title="Cache management is not available yet">
+                  <button class="secondary-button" id="open-thumbnail-cache" type="button">
                     Open in File Explorer
                   </button>
-                  <button class="secondary-button" type="button" disabled title="Cache management is not available yet">
+                  <button class="secondary-button" id="delete-all-thumbnails" type="button">
                     Delete all cached thumbnails
                   </button>
-                  <button class="secondary-button" type="button" disabled title="Cache management is not available yet">
+                  <button class="secondary-button" id="delete-orphaned-thumbnails" type="button">
                     Delete orphaned thumbnails
                   </button>
                 </div>
+                <span class="setting-description">
+                  Orphan cleanup removes indexed thumbnails whose source image is missing or has changed.
+                </span>
+                <p class="thumbnail-cache-status" role="status" aria-live="polite" hidden></p>
               </div>
             </section>
 
@@ -369,6 +373,14 @@ class SettingsScreen extends HTMLElement {
     this.thumbnailCacheDirectoryBrowseButton = this.shadowRoot.querySelector(
       "#browse-thumbnail-cache-directory",
     );
+    this.thumbnailCacheActions = [
+      this.shadowRoot.querySelector("#open-thumbnail-cache"),
+      this.shadowRoot.querySelector("#delete-all-thumbnails"),
+      this.shadowRoot.querySelector("#delete-orphaned-thumbnails"),
+    ];
+    this.thumbnailCacheStatus = this.shadowRoot.querySelector(
+      ".thumbnail-cache-status",
+    );
     this.defaultDirectoryPathInput = this.shadowRoot.querySelector(
       "#default-directory-path",
     );
@@ -430,6 +442,26 @@ class SettingsScreen extends HTMLElement {
     this.thumbnailCacheDirectoryBrowseButton.addEventListener(
       "click",
       () => this.browseThumbnailCacheDirectory(),
+    );
+    this.thumbnailCacheActions[0].addEventListener("click", () =>
+      this.runThumbnailCacheAction(
+        () => window.windowControls.openThumbnailCacheDirectory(),
+        "Opened the thumbnail cache directory.",
+      ),
+    );
+    this.thumbnailCacheActions[1].addEventListener("click", () =>
+      this.runThumbnailCacheAction(
+        () => window.windowControls.deleteAllCachedThumbnails(),
+        (result) =>
+          `Deleted ${result.deletedCount.toLocaleString()} cached thumbnail${result.deletedCount === 1 ? "" : "s"}.`,
+      ),
+    );
+    this.thumbnailCacheActions[2].addEventListener("click", () =>
+      this.runThumbnailCacheAction(
+        () => window.windowControls.deleteOrphanedThumbnails(),
+        (result) =>
+          `Deleted ${result.deletedCount.toLocaleString()} orphaned thumbnail${result.deletedCount === 1 ? "" : "s"}.`,
+      ),
     );
     this.defaultDirectoryBrowseButton.addEventListener("click", () =>
       this.browseDefaultDirectory(),
@@ -501,6 +533,33 @@ class SettingsScreen extends HTMLElement {
       );
     } finally {
       this.thumbnailCacheDirectoryBrowseButton.disabled = false;
+    }
+  }
+
+  async runThumbnailCacheAction(action, successMessage) {
+    this.thumbnailCacheActions.forEach((actionButton) => {
+      actionButton.disabled = true;
+    });
+    this.thumbnailCacheStatus.hidden = true;
+    this.thumbnailCacheStatus.textContent = "";
+    try {
+      const result = await action();
+      this.thumbnailCacheStatus.textContent =
+        typeof successMessage === "function"
+          ? successMessage(result)
+          : successMessage;
+      this.thumbnailCacheStatus.dataset.state = "success";
+      this.thumbnailCacheStatus.hidden = false;
+    } catch (error) {
+      console.error("Unable to manage thumbnail cache:", error);
+      this.thumbnailCacheStatus.textContent =
+        `Unable to manage thumbnail cache: ${error.message ?? String(error)}`;
+      this.thumbnailCacheStatus.dataset.state = "error";
+      this.thumbnailCacheStatus.hidden = false;
+    } finally {
+      this.thumbnailCacheActions.forEach((actionButton) => {
+        actionButton.disabled = false;
+      });
     }
   }
 

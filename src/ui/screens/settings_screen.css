@@ -243,6 +243,21 @@ p {
   gap: 8px;
 }
 
+.thumbnail-cache-status {
+  margin: 0;
+  padding: 0 18px 12px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.thumbnail-cache-status[data-state="success"] {
+  color: #86efac;
+}
+
+.thumbnail-cache-status[data-state="error"] {
+  color: #fca5a5;
+}
+
 .secondary-button {
   min-height: 32px;
   padding: 6px 10px;
