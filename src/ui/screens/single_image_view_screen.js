@@ -172,17 +172,21 @@ class SingleImageViewScreen extends HTMLElement {
     this.imageCanvas = this.shadowRoot.querySelector("#image-canvas");
     this.imagePreview = this.shadowRoot.querySelector(".image-preview");
     this.imageError = this.shadowRoot.querySelector(".image-error");
+    this.handleMouseBackButton = (event) => {
+      if (
+        event.button !== 3 ||
+        this.closest("[data-screen]")?.hidden
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      this.navigateBackToDirectory();
+    };
+    document.addEventListener("auxclick", this.handleMouseBackButton);
     this.shadowRoot
       .querySelector(".canvas-back-button")
-      .addEventListener("click", () => {
-        this.dispatchEvent(
-          new CustomEvent("screen-navigate", {
-            bubbles: true,
-            composed: true,
-            detail: { screen: "directory-view" },
-          }),
-        );
-      });
+      .addEventListener("click", () => this.navigateBackToDirectory());
     this.imageRequestId = 0;
     this.infoRequestId = 0;
     this.imageLoadRequestId = 0;
@@ -325,9 +329,20 @@ class SingleImageViewScreen extends HTMLElement {
   }
 
   disconnectedCallback() {
+    document.removeEventListener("auxclick", this.handleMouseBackButton);
     document.removeEventListener("zoom-change", this.handleZoomChange);
     document.removeEventListener("keydown", this.handlePanKeydown);
     this.resizeObserver.disconnect();
+  }
+
+  navigateBackToDirectory() {
+    this.dispatchEvent(
+      new CustomEvent("screen-navigate", {
+        bubbles: true,
+        composed: true,
+        detail: { screen: "directory-view" },
+      }),
+    );
   }
 
   getPanLimits() {
