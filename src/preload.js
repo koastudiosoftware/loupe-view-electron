@@ -7,12 +7,17 @@ contextBridge.exposeInMainWorld("windowControls", {
   toggleFullscreen: () => ipcRenderer.send("window:toggle-fullscreen"),
   listDirectories: (directoryPath) =>
     ipcRenderer.invoke("directory:list", directoryPath),
+  getLastVisitedDirectory: () =>
+    ipcRenderer.invoke("directory:get-last-visited"),
+  setLastVisitedDirectory: (directoryPath) =>
+    ipcRenderer.invoke("directory:set-last-visited", directoryPath),
   getImageUrl: (imagePath) => ipcRenderer.invoke("image:get-url", imagePath),
   getImageInfo: (imagePath) => ipcRenderer.invoke("image:get-info", imagePath),
   openFolder: (folderPath) => ipcRenderer.invoke("folder:open", folderPath),
   getThumbnail: (imagePath) => ipcRenderer.invoke("thumbnail:get", imagePath),
   chooseThumbnailCacheDirectory: () =>
     ipcRenderer.invoke("thumbnail-cache:choose-directory"),
+  chooseDefaultDirectory: () => ipcRenderer.invoke("directory:choose-default"),
   getFileTypeDescriptions: () => ipcRenderer.invoke("file-types:descriptions"),
   loadSettings: () => ipcRenderer.invoke("settings:load"),
   saveSettings: (settings) => ipcRenderer.invoke("settings:save", settings),

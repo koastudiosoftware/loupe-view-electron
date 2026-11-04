@@ -181,9 +181,6 @@ class DirectoryViewScreen extends HTMLElement {
       this.settingsLoadPromise = this.loadFileTypeSettings();
     }
 
-    if (!this.currentPath) {
-      this.loadDirectory("C:\\");
-    }
   }
 
   async loadFileTypeSettings() {
@@ -197,6 +194,13 @@ class DirectoryViewScreen extends HTMLElement {
       this.fileTypeSettings = settings;
       this.previousFileTypeSettings = settings;
       this.updateThumbnailDisplaySize();
+      if (!this.currentPath) {
+        const startupPath =
+          settings["directory-to-open"] === "default-path"
+            ? settings["default-directory-path"]
+            : await window.windowControls.getLastVisitedDirectory();
+        await this.loadDirectory(startupPath);
+      }
       if (this.currentPath) {
         this.renderDirectories(this.directories);
       }
@@ -235,6 +239,14 @@ class DirectoryViewScreen extends HTMLElement {
       this.directoryPathLabel.textContent = listing.path;
       this.renderDirectories(this.directories);
       this.renderFiles();
+      window.windowControls
+        .setLastVisitedDirectory(listing.path)
+        .catch((error) => {
+          console.error("Unable to persist last-visited directory:", error);
+          this.directoryError.textContent =
+            `Unable to save last-visited directory: ${error.message ?? String(error)}`;
+          this.directoryError.hidden = false;
+        });
     } catch (error) {
       if (requestId !== this.loadRequestId) {
         return;

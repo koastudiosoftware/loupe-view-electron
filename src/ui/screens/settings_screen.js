@@ -124,7 +124,7 @@ template.innerHTML = `
             </section>
 
             <section class="setting-group" aria-labelledby="navigation-settings-title">
-              <h3 id="navigation-settings-title">Navigation</h3>
+              <h3 id="navigation-settings-title">Directories</h3>
               <label class="setting-row" for="directory-single-click-action">
                 <span>
                   <span class="setting-label">Directory Single Click Action</span>
@@ -134,27 +134,6 @@ template.innerHTML = `
                   <option value="open">Open</option>
                   <option value="select" selected>Select</option>
                 </select>
-              </label>
-              <label class="setting-row" for="file-single-click-action">
-                <span>
-                  <span class="setting-label">File Single Click Action</span>
-                  <span class="setting-description">Choose whether a single click opens or selects an image.</span>
-                </span>
-                <select id="file-single-click-action">
-                  <option value="open">Open</option>
-                  <option value="select" selected>Select</option>
-                </select>
-              </label>
-            </section>
-
-            <section class="setting-group" aria-labelledby="file-settings-title">
-              <h3 id="file-settings-title">Files</h3>
-              <label class="setting-row toggle-row" for="enable-file-deletes">
-                <span>
-                  <span class="setting-label">Enable file deletes</span>
-                  <span class="setting-description">Allow deleting files from the image viewer.</span>
-                </span>
-                <input id="enable-file-deletes" type="checkbox" checked />
               </label>
               <label class="setting-row directory-row" for="directory-to-open">
                 <span>
@@ -172,14 +151,34 @@ template.innerHTML = `
                   <input
                     id="default-directory-path"
                     type="text"
-                    value="C:&#92;Users&#92;Public&#92;Pictures"
                     aria-label="Default directory path"
                   />
-                  <button class="secondary-button" type="button" disabled title="Directory browsing will be available when settings are applied">
+                  <button class="secondary-button" id="browse-default-directory" type="button">
                     Browse…
                   </button>
                 </div>
               </div>
+            </section>
+
+            <section class="setting-group" aria-labelledby="file-settings-title">
+              <h3 id="file-settings-title">Files</h3>
+              <label class="setting-row" for="file-single-click-action">
+                <span>
+                  <span class="setting-label">File Single Click Action</span>
+                  <span class="setting-description">Choose whether a single click opens or selects an image.</span>
+                </span>
+                <select id="file-single-click-action">
+                  <option value="open">Open</option>
+                  <option value="select" selected>Select</option>
+                </select>
+              </label>
+              <label class="setting-row toggle-row" for="enable-file-deletes">
+                <span>
+                  <span class="setting-label">Enable file deletes</span>
+                  <span class="setting-description">Allow deleting files from the image viewer.</span>
+                </span>
+                <input id="enable-file-deletes" type="checkbox" checked />
+              </label>
             </section>
           </div>
         </section>
@@ -361,6 +360,12 @@ class SettingsScreen extends HTMLElement {
     this.thumbnailCacheDirectoryBrowseButton = this.shadowRoot.querySelector(
       "#browse-thumbnail-cache-directory",
     );
+    this.defaultDirectoryPathInput = this.shadowRoot.querySelector(
+      "#default-directory-path",
+    );
+    this.defaultDirectoryBrowseButton = this.shadowRoot.querySelector(
+      "#browse-default-directory",
+    );
     this.settingsControls = [
       ...this.shadowRoot.querySelectorAll("input[id], select[id]"),
     ];
@@ -413,6 +418,9 @@ class SettingsScreen extends HTMLElement {
     this.thumbnailCacheDirectoryBrowseButton.addEventListener(
       "click",
       () => this.browseThumbnailCacheDirectory(),
+    );
+    this.defaultDirectoryBrowseButton.addEventListener("click", () =>
+      this.browseDefaultDirectory(),
     );
 
     this.shadowRoot
@@ -478,6 +486,24 @@ class SettingsScreen extends HTMLElement {
       );
     } finally {
       this.thumbnailCacheDirectoryBrowseButton.disabled = false;
+    }
+  }
+
+  async browseDefaultDirectory() {
+    this.defaultDirectoryBrowseButton.disabled = true;
+    try {
+      const selectedPath =
+        await window.windowControls.chooseDefaultDirectory();
+      if (selectedPath) {
+        this.defaultDirectoryPathInput.value = selectedPath;
+        await this.saveSettings();
+      }
+    } catch (error) {
+      this.showSettingsStorageError(
+        `Unable to choose default directory: ${error.message ?? String(error)}`,
+      );
+    } finally {
+      this.defaultDirectoryBrowseButton.disabled = false;
     }
   }
 

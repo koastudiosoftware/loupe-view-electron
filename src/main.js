@@ -29,34 +29,38 @@ const imageFileExtensions = [
   ".heic",
   ".avif",
 ];
-const defaultSettings = {
-  "cache-thumbnails": true,
-  "thumbnail-size": "medium",
-  "remember-window-size": true,
-  "remember-window-position": true,
-  "enable-file-deletes": true,
-  "directory-single-click-action": "select",
-  "file-single-click-action": "select",
-  "directory-to-open": "last-visited",
-  "default-directory-path": "C:\\Users\\Public\\Pictures",
-  "allow-image-enlargement": true,
-  "auto-rotate-exif": true,
-  "show-hidden-files": false,
-  "show-parent-folder": true,
-  "case-sensitive-sort": false,
-  "natural-sort-order": true,
-  "file-type-jpg": true,
-  "file-type-jpeg": true,
-  "file-type-png": true,
-  "file-type-gif": true,
-  "file-type-bmp": true,
-  "file-type-tif": true,
-  "file-type-tiff": true,
-  "file-type-webp": true,
-  "file-type-heic": true,
-  "file-type-avif": true,
-};
+function getDefaultSettings() {
+  return {
+    "cache-thumbnails": true,
+    "thumbnail-size": "medium",
+    "remember-window-size": true,
+    "remember-window-position": true,
+    "enable-file-deletes": true,
+    "directory-single-click-action": "select",
+    "file-single-click-action": "select",
+    "directory-to-open": "last-visited",
+    "default-directory-path": app.getPath("pictures"),
+    "allow-image-enlargement": true,
+    "auto-rotate-exif": true,
+    "show-hidden-files": false,
+    "show-parent-folder": true,
+    "case-sensitive-sort": false,
+    "natural-sort-order": true,
+    "file-type-jpg": true,
+    "file-type-jpeg": true,
+    "file-type-png": true,
+    "file-type-gif": true,
+    "file-type-bmp": true,
+    "file-type-tif": true,
+    "file-type-tiff": true,
+    "file-type-webp": true,
+    "file-type-heic": true,
+    "file-type-avif": true,
+  };
+}
 const settingsPath = () => path.join(app.getPath("userData"), "settings.json");
+const lastVisitedDirectoryPath = () =>
+  path.join(app.getPath("userData"), "last-visited-directory.json");
 const windowStatePath = () =>
   path.join(app.getPath("userData"), "window-state.json");
 let settingsWriteQueue = Promise.resolve();
@@ -68,11 +72,45 @@ async function readSettings() {
     return normalizeSettings(JSON.parse(contents));
   } catch (error) {
     if (error.code === "ENOENT") {
-      return { ...defaultSettings };
+      return getDefaultSettings();
     }
 
     throw error;
   }
+}
+
+async function readLastVisitedDirectory() {
+  try {
+    const contents = await fs.readFile(lastVisitedDirectoryPath(), "utf8");
+    const savedPath = JSON.parse(contents);
+    if (typeof savedPath !== "string" || !path.isAbsolute(savedPath)) {
+      throw new TypeError("Saved last-visited directory is invalid.");
+    }
+
+    const directoryPath = path.resolve(savedPath);
+    const directoryStat = await fs.stat(directoryPath);
+    if (!directoryStat.isDirectory()) {
+      throw new TypeError("Saved last-visited path is not a directory.");
+    }
+    return directoryPath;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return app.getPath("pictures");
+    }
+
+    console.error("Unable to restore last-visited directory:", error);
+    return app.getPath("pictures");
+  }
+}
+
+async function writeLastVisitedDirectory(directoryPath) {
+  const targetPath = lastVisitedDirectoryPath();
+  const temporaryPath = `${targetPath}.tmp`;
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  await fs.writeFile(temporaryPath, `${JSON.stringify(directoryPath)}\n`, {
+    encoding: "utf8",
+  });
+  await fs.rename(temporaryPath, targetPath);
 }
 
 async function readWindowState() {
@@ -175,8 +213,9 @@ function normalizeSettings(settings) {
     throw new TypeError("Settings must be an object.");
   }
 
-  const normalized = { ...defaultSettings };
-  for (const [key, defaultValue] of Object.entries(defaultSettings)) {
+  const defaults = getDefaultSettings();
+  const normalized = { ...defaults };
+  for (const [key, defaultValue] of Object.entries(defaults)) {
     if (!Object.prototype.hasOwnProperty.call(settings, key)) {
       continue;
     }
@@ -201,6 +240,12 @@ function normalizeSettings(settings) {
       throw new TypeError(`Invalid value for setting "${key}".`);
     }
     if (
+      key === "default-directory-path" &&
+      !path.isAbsolute(value.trim())
+    ) {
+      throw new TypeError("Default directory path must be an absolute path.");
+    }
+    if (
       (key === "directory-single-click-action" ||
         key === "file-single-click-action") &&
       !["open", "select"].includes(value)
@@ -209,6 +254,12 @@ function normalizeSettings(settings) {
     }
 
     normalized[key] = value;
+  }
+
+  if (
+    settings["default-directory-path"] === "C:\\Users\\Public\\Pictures"
+  ) {
+    normalized["default-directory-path"] = defaults["default-directory-path"];
   }
 
   const cacheDirectory = settings["thumbnail-cache-directory"];
@@ -236,7 +287,7 @@ async function createWindow() {
     settings = await readSettings();
   } catch (error) {
     console.error("Unable to load settings for window restoration:", error);
-    settings = { ...defaultSettings };
+    settings = getDefaultSettings();
   }
   const savedState = await readWindowState();
   const window = new BrowserWindow({
@@ -353,6 +404,24 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
   };
 });
 
+ipcMain.handle("directory:get-last-visited", async () =>
+  readLastVisitedDirectory(),
+);
+
+ipcMain.handle("directory:set-last-visited", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Directory path must be an absolute path.");
+  }
+
+  const directoryPath = path.resolve(requestedPath);
+  const directoryStat = await fs.stat(directoryPath);
+  if (!directoryStat.isDirectory()) {
+    throw new Error("The requested path is not a directory.");
+  }
+
+  await writeLastVisitedDirectory(directoryPath);
+});
+
 ipcMain.handle("thumbnail-cache:choose-directory", async (event) => {
   const window = BrowserWindow.fromWebContents(event.sender);
   if (!window) {
@@ -363,6 +432,21 @@ ipcMain.handle("thumbnail-cache:choose-directory", async (event) => {
   const { canceled, filePaths } = await dialog.showOpenDialog(window, {
     title: "Choose Thumbnail Cache Directory",
     defaultPath: settings["thumbnail-cache-directory"],
+    properties: ["openDirectory"],
+  });
+  return canceled ? null : filePaths[0];
+});
+
+ipcMain.handle("directory:choose-default", async (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (!window) {
+    throw new Error("Unable to open the default directory picker.");
+  }
+
+  const settings = await readSettings();
+  const { canceled, filePaths } = await dialog.showOpenDialog(window, {
+    title: "Choose Default Directory",
+    defaultPath: settings["default-directory-path"],
     properties: ["openDirectory"],
   });
   return canceled ? null : filePaths[0];
