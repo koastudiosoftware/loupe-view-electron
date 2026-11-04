@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld("windowControls", {
     ipcRenderer.invoke("directory:set-panel-layout", layout),
   listDirectories: (directoryPath) =>
     ipcRenderer.invoke("directory:list", directoryPath),
+  listImageSiblings: (imagePath) =>
+    ipcRenderer.invoke("image:list-siblings", imagePath),
   getLastVisitedDirectory: () =>
     ipcRenderer.invoke("directory:get-last-visited"),
   setLastVisitedDirectory: (directoryPath) =>

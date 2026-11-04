@@ -95,41 +95,54 @@ const meteringModeLabels = {
 template.innerHTML = `
   <link rel="stylesheet" href="${stylesUrl}" />
   <link rel="stylesheet" href="${scrollbarStylesUrl}" />
-  <aside class="file-info-panel" aria-label="File information" hidden>
-    <header class="file-info-header">
-      <h2>Info</h2>
-      <button class="close-button" type="button" aria-label="Close file information">&times;</button>
-    </header>
-    <div class="file-info-actions" role="tablist" aria-label="File information categories">
-      <button class="file-info-action" id="file-details-tab" type="button" role="tab" aria-selected="true" aria-controls="file-details-panel" data-info-tab="file-details" aria-label="File Details">
-        <span class="file-info-icon lab-profile-icon" aria-hidden="true"></span>
-        <span>File Details</span>
+  <div class="viewer-content">
+    <aside class="file-info-panel" aria-label="File information" hidden>
+      <header class="file-info-header">
+        <h2>Info</h2>
+        <button class="close-button" type="button" aria-label="Close file information">&times;</button>
+      </header>
+      <div class="file-info-actions" role="tablist" aria-label="File information categories">
+        <button class="file-info-action" id="file-details-tab" type="button" role="tab" aria-selected="true" aria-controls="file-details-panel" data-info-tab="file-details" aria-label="File Details">
+          <span class="file-info-icon lab-profile-icon" aria-hidden="true"></span>
+          <span>File Details</span>
+        </button>
+        <button class="file-info-action" id="exif-details-tab" type="button" role="tab" aria-selected="false" aria-controls="exif-details-panel" data-info-tab="exif-details" aria-label="EXIF Details">
+          <span class="file-info-icon photo-camera-icon" aria-hidden="true"></span>
+          <span>EXIF Details</span>
+        </button>
+        <button class="file-info-action" id="image-specs-tab" type="button" role="tab" aria-selected="false" aria-controls="image-specs-panel" data-info-tab="image-specs" aria-label="Image Specs">
+          <span class="file-info-icon image-icon" aria-hidden="true"></span>
+          <span>Image Specs</span>
+        </button>
+      </div>
+      <div class="file-info-content themed-scrollbar">
+        <section id="file-details-panel" class="info-tab-panel" role="tabpanel" aria-labelledby="file-details-tab" data-info-panel="file-details"></section>
+        <section id="exif-details-panel" class="info-tab-panel" role="tabpanel" aria-labelledby="exif-details-tab" data-info-panel="exif-details" hidden></section>
+        <section id="image-specs-panel" class="info-tab-panel" role="tabpanel" aria-labelledby="image-specs-tab" data-info-panel="image-specs" hidden></section>
+      </div>
+    </aside>
+    <main id="image-canvas">
+      <button class="canvas-back-button" type="button" aria-label="Back to directory view" title="Back to directory view">
+        <span class="back-icon" aria-hidden="true"></span>
       </button>
-      <button class="file-info-action" id="exif-details-tab" type="button" role="tab" aria-selected="false" aria-controls="exif-details-panel" data-info-tab="exif-details" aria-label="EXIF Details">
-        <span class="file-info-icon photo-camera-icon" aria-hidden="true"></span>
-        <span>EXIF Details</span>
-      </button>
-      <button class="file-info-action" id="image-specs-tab" type="button" role="tab" aria-selected="false" aria-controls="image-specs-panel" data-info-tab="image-specs" aria-label="Image Specs">
-        <span class="file-info-icon image-icon" aria-hidden="true"></span>
-        <span>Image Specs</span>
-      </button>
-    </div>
-    <div class="file-info-content themed-scrollbar">
-      <section id="file-details-panel" class="info-tab-panel" role="tabpanel" aria-labelledby="file-details-tab" data-info-panel="file-details"></section>
-      <section id="exif-details-panel" class="info-tab-panel" role="tabpanel" aria-labelledby="exif-details-tab" data-info-panel="exif-details" hidden></section>
-      <section id="image-specs-panel" class="info-tab-panel" role="tabpanel" aria-labelledby="image-specs-tab" data-info-panel="image-specs" hidden></section>
-    </div>
-  </aside>
-  <main id="image-canvas">
-    <button class="canvas-back-button" type="button" aria-label="Back to directory view" title="Back to directory view">
-      <span class="back-icon" aria-hidden="true"></span>
+      <div class="mark" aria-hidden="true">⌕</div>
+      <h1>Loupe View</h1>
+      <p class="welcome-message">Your image workspace is ready.</p>
+      <img class="image-preview" alt="" hidden />
+      <p class="image-error" role="alert" hidden></p>
+    </main>
+  </div>
+  <aside class="film-strip" aria-label="Image film strip" hidden>
+    <button class="film-strip-arrow" type="button" data-film-strip-direction="-1" aria-label="Previous image" title="Previous image">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
     </button>
-    <div class="mark" aria-hidden="true">⌕</div>
-    <h1>Loupe View</h1>
-    <p class="welcome-message">Your image workspace is ready.</p>
-    <img class="image-preview" alt="" hidden />
-    <p class="image-error" role="alert" hidden></p>
-  </main>
+    <div class="film-strip-viewport themed-scrollbar" tabindex="0" aria-label="Image thumbnails">
+      <div class="film-strip-track"></div>
+    </div>
+    <button class="film-strip-arrow" type="button" data-film-strip-direction="1" aria-label="Next image" title="Next image">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+    </button>
+  </aside>
 `;
 
 class SingleImageViewScreen extends HTMLElement {
@@ -172,6 +185,78 @@ class SingleImageViewScreen extends HTMLElement {
     this.imageCanvas = this.shadowRoot.querySelector("#image-canvas");
     this.imagePreview = this.shadowRoot.querySelector(".image-preview");
     this.imageError = this.shadowRoot.querySelector(".image-error");
+    this.filmStrip = this.shadowRoot.querySelector(".film-strip");
+    this.filmStripTrack = this.shadowRoot.querySelector(".film-strip-track");
+    this.filmStripViewport = this.shadowRoot.querySelector(
+      ".film-strip-viewport",
+    );
+    this.filmStripArrows = [
+      ...this.shadowRoot.querySelectorAll("[data-film-strip-direction]"),
+    ];
+    this.filmStripOpen = false;
+    this.filmStripRequestId = 0;
+    this.filmStripDirectoryPath = null;
+    this.filmStripLoadingDirectoryPath = null;
+    this.currentImagePath = null;
+    this.fileTypeSettings = null;
+    this.filmStripTrack.addEventListener("click", (event) => {
+      const item = event.target.closest(".film-strip-item");
+      if (!item) {
+        return;
+      }
+
+      this.dispatchEvent(
+        new CustomEvent("image-open", {
+          bubbles: true,
+          composed: true,
+          detail: { path: item.dataset.path },
+        }),
+      );
+    });
+    this.filmStripArrows.forEach((arrow) => {
+      arrow.addEventListener("click", () => {
+        this.openAdjacentFilmStripImage(
+          Number(arrow.dataset.filmStripDirection),
+        );
+      });
+    });
+    this.filmStripViewport.addEventListener("scroll", () =>
+      this.updateFilmStripArrows(),
+    );
+    this.filmStripViewport.addEventListener(
+      "wheel",
+      (event) => {
+        const scrollDelta = event.deltaX || event.deltaY;
+        if (scrollDelta === 0) {
+          return;
+        }
+
+        event.preventDefault();
+        this.filmStripViewport.scrollLeft += scrollDelta;
+      },
+      { passive: false },
+    );
+    this.handleFilmStripToggle = () =>
+      this.setFilmStripOpen(!this.filmStripOpen);
+    this.handleSettingsChanged = (event) => {
+      const settings = event.detail;
+      const fileTypesChanged = [
+        "file-type-jpg",
+        "file-type-jpeg",
+        "file-type-png",
+        "file-type-gif",
+        "file-type-bmp",
+        "file-type-tif",
+        "file-type-tiff",
+        "file-type-webp",
+        "file-type-heic",
+        "file-type-avif",
+      ].some((key) => this.fileTypeSettings?.[key] !== settings[key]);
+      this.fileTypeSettings = settings;
+      if (fileTypesChanged && this.currentImagePath) {
+        this.loadFilmStrip(this.currentImagePath, true);
+      }
+    };
     this.handleMouseBackButton = (event) => {
       if (
         event.button !== 3 ||
@@ -239,7 +324,10 @@ class SingleImageViewScreen extends HTMLElement {
         horizontal ? 0 : direction * 40,
       );
     };
-    this.resizeObserver = new ResizeObserver(() => this.constrainPan());
+    this.resizeObserver = new ResizeObserver(() => {
+      this.constrainPan();
+      this.updateFilmStripArrows();
+    });
     this.imageCanvas.addEventListener("pointerdown", (event) => {
       if (
         event.button !== 0 ||
@@ -325,13 +413,24 @@ class SingleImageViewScreen extends HTMLElement {
   connectedCallback() {
     document.addEventListener("zoom-change", this.handleZoomChange);
     document.addEventListener("keydown", this.handlePanKeydown);
+    document.addEventListener("film-strip-toggle", this.handleFilmStripToggle);
+    document.addEventListener("settings-changed", this.handleSettingsChanged);
     this.resizeObserver.observe(this.imageCanvas);
+    this.resizeObserver.observe(this.filmStripViewport);
   }
 
   disconnectedCallback() {
     document.removeEventListener("auxclick", this.handleMouseBackButton);
     document.removeEventListener("zoom-change", this.handleZoomChange);
     document.removeEventListener("keydown", this.handlePanKeydown);
+    document.removeEventListener(
+      "film-strip-toggle",
+      this.handleFilmStripToggle,
+    );
+    document.removeEventListener(
+      "settings-changed",
+      this.handleSettingsChanged,
+    );
     this.resizeObserver.disconnect();
   }
 
@@ -343,6 +442,218 @@ class SingleImageViewScreen extends HTMLElement {
         detail: { screen: "directory-view" },
       }),
     );
+  }
+
+  setFilmStripOpen(isOpen) {
+    this.filmStripOpen = isOpen;
+    this.filmStrip.hidden = !isOpen;
+    this.dispatchEvent(
+      new CustomEvent("film-strip-visibility", {
+        bubbles: true,
+        composed: true,
+        detail: { isOpen },
+      }),
+    );
+    if (isOpen) {
+      requestAnimationFrame(() => this.centerCurrentFilmStripItem());
+    }
+    this.updateFilmStripArrows();
+  }
+
+  getFilmStripDirectoryPath(imagePath) {
+    return imagePath.replace(/[\\/][^\\/]*$/, "").toLowerCase();
+  }
+
+  async loadFilmStrip(imagePath, forceReload = false) {
+    const directoryPath = this.getFilmStripDirectoryPath(imagePath);
+    if (
+      !forceReload &&
+      directoryPath === this.filmStripDirectoryPath &&
+      this.filmStripTrack.querySelector(".film-strip-item")
+    ) {
+      this.updateFilmStripSelection(this.currentImagePath);
+      if (this.filmStripOpen) {
+        requestAnimationFrame(() => this.centerCurrentFilmStripItem());
+      }
+      return;
+    }
+    if (
+      !forceReload &&
+      directoryPath === this.filmStripLoadingDirectoryPath
+    ) {
+      return;
+    }
+
+    const requestId = ++this.filmStripRequestId;
+    this.filmStripLoadingDirectoryPath = directoryPath;
+    try {
+      const siblings =
+        await window.windowControls.listImageSiblings(imagePath);
+      if (requestId !== this.filmStripRequestId) {
+        return;
+      }
+
+      this.filmStripDirectoryPath = directoryPath;
+      this.filmStripLoadingDirectoryPath = null;
+      const currentImagePath = this.currentImagePath;
+      const currentPath = currentImagePath.toLowerCase();
+      if (!siblings.some((file) => file.path.toLowerCase() === currentPath)) {
+        siblings.push({
+          name: currentImagePath.split(/[\\/]/).pop(),
+          path: currentImagePath,
+        });
+      }
+      this.filmStripTrack.replaceChildren();
+      for (const file of siblings) {
+        const item = document.createElement("button");
+        item.className = "film-strip-item";
+        item.type = "button";
+        item.dataset.path = file.path;
+        item.setAttribute("aria-label", file.name);
+        item.title = file.name;
+        item.setAttribute("aria-pressed", "false");
+        const previewFrame = document.createElement("span");
+        previewFrame.className = "film-strip-preview-frame";
+        const placeholder = document.createElement("span");
+        placeholder.className = "film-strip-placeholder";
+        placeholder.setAttribute("aria-hidden", "true");
+        const preview = document.createElement("img");
+        preview.className = "film-strip-preview";
+        preview.alt = "";
+        preview.hidden = true;
+        preview.addEventListener("load", () => {
+          if (requestId !== this.filmStripRequestId) {
+            return;
+          }
+          preview.hidden = false;
+          placeholder.hidden = true;
+        });
+        preview.addEventListener("error", () => {
+          if (requestId !== this.filmStripRequestId) {
+            return;
+          }
+          preview.hidden = true;
+          placeholder.hidden = false;
+        });
+        previewFrame.append(placeholder, preview);
+        item.append(previewFrame);
+        this.filmStripTrack.append(item);
+        this.loadFilmStripThumbnail(
+          file,
+          preview,
+          placeholder,
+          item,
+          requestId,
+        );
+      }
+      this.updateFilmStripSelection(currentImagePath);
+      if (this.filmStripOpen) {
+        requestAnimationFrame(() => this.centerCurrentFilmStripItem());
+      }
+      this.updateFilmStripArrows();
+    } catch (error) {
+      if (requestId !== this.filmStripRequestId) {
+        return;
+      }
+
+      this.filmStripLoadingDirectoryPath = null;
+      console.error("Unable to load film strip:", error);
+      const message = document.createElement("p");
+      message.className = "film-strip-message";
+      message.textContent =
+        `Unable to load image siblings: ${error.message ?? String(error)}`;
+      this.filmStripTrack.replaceChildren(message);
+      this.updateFilmStripArrows();
+    }
+  }
+
+  async loadFilmStripThumbnail(file, preview, placeholder, item, requestId) {
+    try {
+      const thumbnail = await window.windowControls.getThumbnail(file.path);
+      if (requestId === this.filmStripRequestId) {
+        preview.src = thumbnail.url;
+      }
+    } catch (error) {
+      if (requestId !== this.filmStripRequestId) {
+        return;
+      }
+
+      console.error(
+        `Unable to load film strip thumbnail for "${file.path}":`,
+        error,
+      );
+      placeholder.hidden = false;
+      item.title =
+        `${file.name}\nThumbnail unavailable: ${error.message ?? String(error)}`;
+    }
+  }
+
+  updateFilmStripSelection(imagePath) {
+    let selectedIndex = -1;
+    [...this.filmStripTrack.querySelectorAll(".film-strip-item")].forEach(
+      (item, index) => {
+        const selected =
+          item.dataset.path.toLowerCase() === imagePath.toLowerCase();
+        item.setAttribute("aria-pressed", String(selected));
+        item.classList.toggle("current", selected);
+        if (selected) {
+          selectedIndex = index;
+        }
+      },
+    );
+    this.selectedFilmStripIndex = selectedIndex;
+    this.updateFilmStripArrows();
+  }
+
+  openAdjacentFilmStripImage(direction) {
+    const items = this.filmStripTrack.querySelectorAll(".film-strip-item");
+    const nextItem = items[this.selectedFilmStripIndex + direction];
+    if (!nextItem) {
+      return;
+    }
+
+    this.dispatchEvent(
+      new CustomEvent("image-open", {
+        bubbles: true,
+        composed: true,
+        detail: { path: nextItem.dataset.path },
+      }),
+    );
+  }
+
+  centerCurrentFilmStripItem() {
+    if (!this.filmStripOpen || !this.currentImagePath) {
+      return;
+    }
+
+    const currentItem = [
+      ...this.filmStripTrack.querySelectorAll(".film-strip-item"),
+    ].find(
+      (item) =>
+        item.dataset.path.toLowerCase() === this.currentImagePath.toLowerCase(),
+    );
+    if (!currentItem) {
+      return;
+    }
+
+    const itemBounds = currentItem.getBoundingClientRect();
+    const viewportBounds = this.filmStripViewport.getBoundingClientRect();
+    this.filmStripViewport.scrollLeft +=
+      itemBounds.left +
+      itemBounds.width / 2 -
+      (viewportBounds.left + viewportBounds.width / 2);
+    this.updateFilmStripArrows();
+  }
+
+  updateFilmStripArrows() {
+    this.filmStripArrows.forEach((arrow) => {
+      const direction = Number(arrow.dataset.filmStripDirection);
+      arrow.disabled =
+        this.selectedFilmStripIndex < 0 ||
+        this.selectedFilmStripIndex + direction < 0 ||
+        this.selectedFilmStripIndex + direction >=
+          this.filmStripTrack.querySelectorAll(".film-strip-item").length;
+    });
   }
 
   getPanLimits() {
@@ -416,6 +727,9 @@ class SingleImageViewScreen extends HTMLElement {
   async setImage(imagePath) {
     const requestId = ++this.imageRequestId;
     const infoRequestId = ++this.infoRequestId;
+    this.currentImagePath = imagePath;
+    this.updateFilmStripSelection(imagePath);
+    this.loadFilmStrip(imagePath);
     this.renderInfoMessage("Loading image information…");
     this.dispatchEvent(
       new CustomEvent("zoom-reset", {

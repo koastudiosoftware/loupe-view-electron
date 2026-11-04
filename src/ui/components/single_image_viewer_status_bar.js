@@ -11,10 +11,11 @@ template.innerHTML = `
     <div class="status-group">
       <button
         class="status-button"
-        data-action="single-image-view"
+        data-action="film-strip"
         type="button"
-        aria-label="Film view"
-        title="Film view"
+        aria-label="Show film strip"
+        aria-pressed="false"
+        title="Film strip"
       >
         <svg
           class="zoom-icon view-carousel-icon"
@@ -135,6 +136,8 @@ class ImageStatusBar extends HTMLElement {
     this.handleImageOpen = () => this.updateImageMetadata(null);
     this.handleImageMetadata = (event) =>
       this.updateImageMetadata(event.detail);
+    this.handleFilmStripVisibility = (event) =>
+      this.updateFilmStripButton(event.detail.isOpen);
     this.currentZoom = Number(this.zoomSlider.value);
     this.handleZoomStep = (event) => {
       const zoom = Math.max(
@@ -168,12 +171,11 @@ class ImageStatusBar extends HTMLElement {
             composed: true,
           }),
         );
-      } else if (action === "single-image-view") {
+      } else if (action === "film-strip") {
         this.dispatchEvent(
-          new CustomEvent("screen-navigate", {
+          new CustomEvent("film-strip-toggle", {
             bubbles: true,
             composed: true,
-            detail: { screen: "single-image-view" },
           }),
         );
       } else if (action === "preset") {
@@ -196,6 +198,10 @@ class ImageStatusBar extends HTMLElement {
     document.addEventListener("zoom-reset", this.handleZoomReset);
     document.addEventListener("image-open", this.handleImageOpen);
     document.addEventListener("image-metadata", this.handleImageMetadata);
+    document.addEventListener(
+      "film-strip-visibility",
+      this.handleFilmStripVisibility,
+    );
     this.removeFullscreenListener = window.windowControls.onFullscreenChange(
       (isFullScreen) => this.updateFullscreenState(isFullScreen),
     );
@@ -207,6 +213,10 @@ class ImageStatusBar extends HTMLElement {
     document.removeEventListener("zoom-reset", this.handleZoomReset);
     document.removeEventListener("image-open", this.handleImageOpen);
     document.removeEventListener("image-metadata", this.handleImageMetadata);
+    document.removeEventListener(
+      "film-strip-visibility",
+      this.handleFilmStripVisibility,
+    );
     this.removeFullscreenListener?.();
   }
 
@@ -258,6 +268,18 @@ class ImageStatusBar extends HTMLElement {
     this.metadataFields.fileSize.textContent = metadata
       ? this.formatFileSize(metadata.fileSize)
       : "—";
+  }
+
+  updateFilmStripButton(isOpen) {
+    const filmStripButton = this.shadowRoot.querySelector(
+      '[data-action="film-strip"]',
+    );
+    filmStripButton.setAttribute("aria-pressed", String(isOpen));
+    filmStripButton.setAttribute(
+      "aria-label",
+      isOpen ? "Hide film strip" : "Show film strip",
+    );
+    filmStripButton.title = isOpen ? "Hide film strip" : "Show film strip";
   }
 
   formatFileSize(bytes) {

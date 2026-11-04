@@ -1,10 +1,18 @@
 :host {
   display: flex;
+  flex-direction: column;
   min-height: 0;
   flex: 1;
   color: #f3f4f6;
   font-family: "Segoe UI", sans-serif;
   text-align: center;
+}
+
+.viewer-content {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
 }
 
 main {
@@ -123,6 +131,153 @@ p {
   margin: 10px 0 0;
   color: #969ba7;
   font-size: 15px;
+}
+
+.film-strip {
+  box-sizing: border-box;
+  display: flex;
+  height: 120px;
+  min-height: 120px;
+  flex: 0 0 120px;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid #30333b;
+  background: #191b21;
+}
+
+.film-strip[hidden] {
+  display: none;
+}
+
+.film-strip-viewport {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+}
+
+.film-strip-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.film-strip-track {
+  box-sizing: border-box;
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 0 max(0px, calc((100% - 104px) / 2));
+}
+
+.film-strip-item {
+  box-sizing: border-box;
+  display: grid;
+  width: 104px;
+  height: 88px;
+  flex: 0 0 104px;
+  padding: 4px;
+  place-items: center;
+  border: 1px solid #3b3e48;
+  border-radius: 5px;
+  background: #111318;
+  cursor: pointer;
+  scroll-snap-align: center;
+}
+
+.film-strip-item:hover {
+  border-color: #858a97;
+  background: #22242b;
+}
+
+.film-strip-item.current {
+  border: 2px solid #a5b4fc;
+  background: #30333b;
+  box-shadow: 0 0 0 1px rgb(165 180 252 / 24%);
+}
+
+.film-strip-item:focus-visible,
+.film-strip-arrow:focus-visible,
+.film-strip-viewport:focus-visible {
+  outline: 2px solid #a5b4fc;
+  outline-offset: 2px;
+}
+
+.film-strip-preview-frame {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  overflow: hidden;
+  background: #191b21;
+}
+
+.film-strip-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.film-strip-preview[hidden],
+.film-strip-placeholder[hidden] {
+  display: none;
+}
+
+.film-strip-placeholder {
+  width: 34px;
+  height: 34px;
+  background-color: #858a97;
+  mask: url("../../../assets/material-icons_image.svg") center / contain
+    no-repeat;
+  -webkit-mask: url("../../../assets/material-icons_image.svg") center /
+    contain no-repeat;
+}
+
+.film-strip-arrow {
+  box-sizing: border-box;
+  display: grid;
+  width: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  align-self: center;
+  border: 1px solid #3b3e48;
+  border-radius: 5px;
+  background: #22242b;
+  color: #d7d9df;
+  cursor: pointer;
+}
+
+.film-strip-arrow svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.film-strip-arrow:hover:not(:disabled) {
+  background: #30333b;
+}
+
+.film-strip-arrow:disabled {
+  color: #585c66;
+  cursor: default;
+}
+
+.film-strip-message {
+  align-self: center;
+  margin: 0;
+  color: #fca5a5;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .file-info-panel {

@@ -29,6 +29,12 @@ const imageFileExtensions = [
   ".heic",
   ".avif",
 ];
+const imageFileSettingIds = Object.fromEntries(
+  imageFileExtensions.map((extension) => [
+    extension,
+    `file-type-${extension.slice(1)}`,
+  ]),
+);
 function getDefaultSettings() {
   return {
     "cache-thumbnails": true,
@@ -513,6 +519,34 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
   };
 });
 
+ipcMain.handle("image:list-siblings", async (_event, requestedPath) => {
+  if (typeof requestedPath !== "string" || !path.isAbsolute(requestedPath)) {
+    throw new TypeError("Image path must be an absolute path.");
+  }
+
+  const imagePath = path.resolve(requestedPath);
+  const settings = await readSettings();
+  const enabledExtensions = new Set(
+    Object.entries(imageFileSettingIds)
+      .filter(([, settingId]) => settings[settingId])
+      .map(([extension]) => extension),
+  );
+  const entries = await fs.readdir(path.dirname(imagePath), {
+    withFileTypes: true,
+  });
+
+  return entries
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        enabledExtensions.has(path.extname(entry.name).toLowerCase()),
+    )
+    .map((entry) => ({
+      name: entry.name,
+      path: path.join(path.dirname(imagePath), entry.name),
+    }));
+});
+
 ipcMain.handle("directory:get-last-visited", async () =>
   readLastVisitedDirectory(),
 );
@@ -702,18 +736,7 @@ ipcMain.handle("thumbnail:get", async (_event, requestedPath) => {
   const imagePath = path.resolve(requestedPath);
   const settings = await readSettings();
   const extension = path.extname(imagePath).toLowerCase();
-  const settingId = {
-    ".jpg": "file-type-jpg",
-    ".jpeg": "file-type-jpeg",
-    ".png": "file-type-png",
-    ".gif": "file-type-gif",
-    ".bmp": "file-type-bmp",
-    ".tif": "file-type-tif",
-    ".tiff": "file-type-tiff",
-    ".webp": "file-type-webp",
-    ".heic": "file-type-heic",
-    ".avif": "file-type-avif",
-  }[extension];
+  const settingId = imageFileSettingIds[extension];
   if (!settingId || !settings[settingId]) {
     throw new Error(`Image type "${extension || "unknown"}" is not enabled.`);
   }
