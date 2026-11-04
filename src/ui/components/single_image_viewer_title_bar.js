@@ -32,6 +32,7 @@ template.innerHTML = `
     </div>
     <div class="screen-content">
       <span class="image-title" hidden></span>
+      <span class="directory-title" hidden></span>
       <slot name="screen-content"></slot>
     </div>
     <div class="window-controls">
@@ -71,11 +72,25 @@ class SingleImageViewerTitleBar extends HTMLElement {
     );
     this.settingsChangeVersion = 0;
     this.imageTitle = this.shadowRoot.querySelector(".image-title");
+    this.directoryTitle = this.shadowRoot.querySelector(".directory-title");
+    this.titleMode = "directory";
     this.handleImageOpen = (event) => {
       const fileName = event.detail.path.split(/[\\/]/).pop();
       this.imageTitle.textContent = fileName;
       this.imageTitle.title = fileName;
-      this.imageTitle.hidden = false;
+      this.setTitleMode("image");
+    };
+    this.handleDirectoryPathChange = (event) => {
+      this.directoryTitle.textContent = event.detail.path;
+      this.directoryTitle.title = event.detail.path;
+      this.setTitleMode(this.titleMode);
+    };
+    this.handleScreenNavigate = (event) => {
+      if (event.detail?.screen === "directory-view") {
+        this.setTitleMode("directory");
+      } else if (event.detail?.screen === "single-image-view") {
+        this.setTitleMode("image");
+      }
     };
     this.handleSettingsChanged = (event) => {
       this.settingsChangeVersion += 1;
@@ -109,6 +124,11 @@ class SingleImageViewerTitleBar extends HTMLElement {
 
   connectedCallback() {
     document.addEventListener("image-open", this.handleImageOpen);
+    document.addEventListener(
+      "directory-path-change",
+      this.handleDirectoryPathChange,
+    );
+    document.addEventListener("screen-navigate", this.handleScreenNavigate);
     document.addEventListener("settings-changed", this.handleSettingsChanged);
     this.loadDeleteSetting();
     this.removeMaximizedListener = window.windowControls.onMaximizedChange(
@@ -118,6 +138,11 @@ class SingleImageViewerTitleBar extends HTMLElement {
 
   disconnectedCallback() {
     document.removeEventListener("image-open", this.handleImageOpen);
+    document.removeEventListener(
+      "directory-path-change",
+      this.handleDirectoryPathChange,
+    );
+    document.removeEventListener("screen-navigate", this.handleScreenNavigate);
     document.removeEventListener(
       "settings-changed",
       this.handleSettingsChanged,
@@ -139,6 +164,13 @@ class SingleImageViewerTitleBar extends HTMLElement {
 
   updateDeleteButton(settings) {
     this.deleteButton.hidden = settings?.["enable-file-deletes"] !== true;
+  }
+
+  setTitleMode(mode) {
+    this.titleMode = mode;
+    this.imageTitle.hidden = mode !== "image" || !this.imageTitle.textContent;
+    this.directoryTitle.hidden =
+      mode !== "directory" || !this.directoryTitle.textContent;
   }
 
   handleMaximizedChange(isMaximized) {

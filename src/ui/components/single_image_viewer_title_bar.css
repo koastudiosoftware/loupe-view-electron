@@ -75,10 +75,10 @@ header {
   padding: 0 12px;
 }
 
-.image-title {
+.image-title,
+.directory-title {
   position: absolute;
   left: 50%;
-  max-width: min(50%, 640px);
   overflow: hidden;
   color: #d7d9df;
   font-size: 12px;
@@ -88,7 +88,16 @@ header {
   white-space: nowrap;
 }
 
-.image-title[hidden] {
+.image-title {
+  max-width: min(50%, 640px);
+}
+
+.directory-title {
+  max-width: min(65%, 1000px);
+}
+
+.image-title[hidden],
+.directory-title[hidden] {
   display: none;
 }
 

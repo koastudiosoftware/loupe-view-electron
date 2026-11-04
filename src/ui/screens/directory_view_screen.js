@@ -329,6 +329,13 @@ class DirectoryViewScreen extends HTMLElement {
       this.rootPath = listing.rootPath;
       this.directories = listing.directories;
       this.files = listing.files;
+      this.dispatchEvent(
+        new CustomEvent("directory-path-change", {
+          bubbles: true,
+          composed: true,
+          detail: { path: listing.path },
+        }),
+      );
       this.directoryPathInput.value = listing.path;
       this.directoryPathInput.classList.remove("invalid");
       this.directoryPathInput.removeAttribute("aria-invalid");
@@ -458,6 +465,7 @@ class DirectoryViewScreen extends HTMLElement {
       this.fileGrid.append(gridItem);
       this.loadThumbnail(file, preview, gridItem, renderVersion);
     }
+    this.updateDirectoryStatus();
   }
 
   updateThumbnailDisplaySize() {
@@ -506,6 +514,36 @@ class DirectoryViewScreen extends HTMLElement {
       }
       entry.classList.toggle("selected", isSelected);
     }
+    this.updateDirectoryStatus();
+  }
+
+  updateDirectoryStatus() {
+    const selectedPaths = new Set(
+      [
+        ...this.fileList.querySelectorAll(".file-entry.selected"),
+        ...this.fileGrid.querySelectorAll(".file-grid-item.selected"),
+      ].map((entry) => entry.dataset.path),
+    );
+    const sizesByPath = new Map(
+      this.files.map((file) => [file.path, file.size]),
+    );
+    const totalSize = this.files.reduce((sum, file) => sum + file.size, 0);
+    const selectedSize = [...selectedPaths].reduce(
+      (sum, filePath) => sum + (sizesByPath.get(filePath) ?? 0),
+      0,
+    );
+    this.dispatchEvent(
+      new CustomEvent("directory-status-change", {
+        bubbles: true,
+        composed: true,
+        detail: {
+          totalFileCount: this.files.length,
+          selectedFileCount: selectedPaths.size,
+          totalFileSize: totalSize,
+          selectedFileSize: selectedSize,
+        },
+      }),
+    );
   }
 
   openImage(imagePath) {

@@ -510,12 +510,19 @@ ipcMain.handle("directory:list", async (_event, requestedPath) => {
         name: entry.name,
         path: path.join(directoryPath, entry.name),
       })),
-    files: entries
-      .filter((entry) => entry.isFile())
-      .map((entry) => ({
-        name: entry.name,
-        path: path.join(directoryPath, entry.name),
-      })),
+    files: await Promise.all(
+      entries
+        .filter((entry) => entry.isFile())
+        .map(async (entry) => {
+          const filePath = path.join(directoryPath, entry.name);
+          const fileStat = await fs.stat(filePath);
+          return {
+            name: entry.name,
+            path: filePath,
+            size: fileStat.size,
+          };
+        }),
+    ),
   };
 });
 
